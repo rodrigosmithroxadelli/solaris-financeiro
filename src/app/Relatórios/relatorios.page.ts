@@ -34,7 +34,7 @@ import { download, calendar, barChart, pieChart } from 'ionicons/icons';
   styleUrls: ['relatorios.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, // Necessário para *ngIf e *ngFor
+    CommonModule,
     FormsModule,
     IonHeader,
     IonToolbar,
@@ -59,13 +59,16 @@ export class RelatoriosPage implements OnInit, OnDestroy {
   periodType: 'dia' | 'semana' | 'mes' = 'mes';
   selectedDate: string = new Date().toISOString();
   summary: PeriodSummary | null = null;
-  transactions: Transaction[] = [];
+  
+  allTransactions: Transaction[] = [];
+  filteredTransactions: Transaction[] = [];
+
   categoryData: { [key: string]: number } = {};
   paymentMethodData: { [key: string]: number } = {};
-  private subscription?: Subscription;
+  private transactionsSubscription?: Subscription;
 
   constructor(
-    private financeService: FinanceService,
+    public financeService: FinanceService,
     private exportService: ExportService,
     private toastController: ToastController
   ) {
@@ -73,113 +76,109 @@ export class RelatoriosPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.loadData();
-    this.subscription = this.financeService.transactions$.subscribe(() => {
-      this.loadData();
+    this.transactionsSubscription = this.financeService.transactions$.subscribe(data => {
+      this.allTransactions = data;
+      this.processData();
     });
   }
 
   ngOnDestroy() {
-    this.subscription?.unsubscribe();
+    this.transactionsSubscription?.unsubscribe();
   }
 
-  loadData() {
+  processData() {
     const date = new Date(this.selectedDate);
-    
+    let startDate: Date;
+    let endDate: Date;
+
     switch (this.periodType) {
       case 'dia':
-        this.summary = this.financeService.getDailySummary(this.selectedDate);
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
-        this.transactions = this.financeService.getTransactionsByDateRange(
-          dayStart.toISOString(),
-          dayEnd.toISOString()
-        );
+        startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+        endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
         break;
       case 'semana':
-        this.summary = this.financeService.getWeeklySummary(this.selectedDate);
-        const weekStart = new Date(date);
-        weekStart.setHours(0, 0, 0, 0);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        weekEnd.setHours(23, 59, 59, 999);
-        this.transactions = this.financeService.getTransactionsByDateRange(
-          weekStart.toISOString(),
-          weekEnd.toISOString()
-        );
+        const firstDayOfWeek = date.getDate() - date.getDay();
+        startDate = new Date(date.setDate(firstDayOfWeek));
+        startDate.setHours(0,0,0,0);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
         break;
       case 'mes':
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        this.summary = this.financeService.getMonthlySummary(year, month);
-        const monthStart = new Date(year, month - 1, 1);
-        monthStart.setHours(0, 0, 0, 0);
-        const monthEnd = new Date(year, month, 0);
-        monthEnd.setHours(23, 59, 59, 999);
-        this.transactions = this.financeService.getTransactionsByDateRange(
-          monthStart.toISOString(),
-          monthEnd.toISOString()
-        );
+        startDate = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0);
+        endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
         break;
     }
 
-    this.loadCategoryData();
-    this.loadPaymentMethodData();
+    this.filteredTransactions = this.allTransactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate >= startDate && transactionDate <= endDate;
+    });
+
+    const totalEntradas = this.filteredTransactions
+      .filter(t => t.type === 'entrada')
+      .reduce((acc, t) => acc + t.amount, 0);
+    
+    const totalSaidas = this.filteredTransactions
+      .filter(t => t.type === 'saida')
+      .reduce((acc, t) => acc + t.amount, 0);
+
+    this.summary = {
+      totalEntradas,
+      totalSaidas,
+      saldo: totalEntradas - totalSaidas,
+      date: this.selectedDate
+    };
+
+    this.categoryData = this.aggregateBy(this.filteredTransactions, 'category');
+    this.paymentMethodData = this.aggregateBy(this.filteredTransactions, 'paymentMethod');
   }
 
-  loadCategoryData() {
-    const entradas = this.financeService.getTransactionsByCategory('entrada');
-    const saidas = this.financeService.getTransactionsByCategory('saida');
-    this.categoryData = { ...entradas, ...saidas };
-  }
-
-  loadPaymentMethodData() {
-    this.paymentMethodData = this.financeService.getTransactionsByPaymentMethod();
+  private aggregateBy(transactions: Transaction[], key: keyof Transaction): { [key: string]: number } {
+    return transactions.reduce((acc, t) => {
+      const group = t[key] as string;
+      if (group) {
+        acc[group] = (acc[group] || 0) + t.amount;
+      }
+      return acc;
+    }, {} as { [key: string]: number });
   }
 
   onPeriodChange() {
-    this.loadData();
+    this.processData();
   }
 
   onDateChange(event: any) {
     this.selectedDate = event.detail.value;
-    this.loadData();
+    this.processData();
   }
 
   async exportPDF() {
-    if (!this.summary) {
+    if (!this.summary || this.filteredTransactions.length === 0) {
       await this.showToast('Nenhum dado para exportar', 'warning');
       return;
     }
     try {
-      await this.exportService.exportToPDF(this.summary, this.transactions);
+      await this.exportService.exportToPDF(this.summary, this.filteredTransactions, this.periodType);
       await this.showToast('PDF exportado com sucesso!', 'success');
     } catch (error) {
+      console.error('Error exporting PDF:', error);
       await this.showToast('Erro ao exportar PDF', 'danger');
     }
   }
 
   async exportExcel() {
-    if (!this.summary) {
+    if (!this.summary || this.filteredTransactions.length === 0) {
       await this.showToast('Nenhum dado para exportar', 'warning');
       return;
     }
     try {
-      await this.exportService.exportToExcel(this.summary, this.transactions);
+      await this.exportService.exportToExcel(this.summary, this.filteredTransactions, this.periodType);
       await this.showToast('Excel exportado com sucesso!', 'success');
     } catch (error) {
+      console.error('Error exporting Excel:', error);
       await this.showToast('Erro ao exportar Excel', 'danger');
     }
-  }
-
-  formatCurrency(value: number): string {
-    return this.financeService.formatCurrency(value);
-  }
-
-  formatDate(date: string): string {
-    return this.financeService.formatDate(date);
   }
 
   getCategoryEntries(): Array<{ category: string; amount: number }> {
@@ -203,12 +202,12 @@ export class RelatoriosPage implements OnInit, OnDestroy {
       }))
       .sort((a, b) => b.amount - a.amount);
   }
-
+  
   getAverage(total: number, type: 'entrada' | 'saida'): number {
-    const count = this.transactions.filter(t => t.type === type).length;
+    const count = this.filteredTransactions.filter(t => t.type === type).length;
     return count > 0 ? total / count : 0;
   }
-
+  
   getPercentage(amount: number): number {
     if (!this.summary) return 0;
     const maxAmount = Math.max(
@@ -219,7 +218,7 @@ export class RelatoriosPage implements OnInit, OnDestroy {
     );
     return maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
   }
-
+  
   getComparisonPercentage(value: number): number {
     if (!this.summary) return 0;
     const maxValue = Math.max(this.summary.totalEntradas, this.summary.totalSaidas);

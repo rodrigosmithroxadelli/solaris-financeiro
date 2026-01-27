@@ -9,19 +9,19 @@ import { PeriodSummary } from './finance.service';
 export class ExportService {
   constructor(private financeService: FinanceService) {}
 
-  async exportToPDF(summary: PeriodSummary, transactions: Transaction[]): Promise<void> {
+  async exportToPDF(summary: PeriodSummary, transactions: Transaction[], period: string): Promise<void> {
     // Implementação básica - em produção, usar jsPDF
-    const content = this.generatePDFContent(summary, transactions);
+    const content = this.generatePDFContent(summary, transactions, period);
     this.downloadFile(content, 'relatorio.pdf', 'application/pdf');
   }
 
-  async exportToExcel(summary: PeriodSummary, transactions: Transaction[]): Promise<void> {
+  async exportToExcel(summary: PeriodSummary, transactions: Transaction[], period: string): Promise<void> {
     // Implementação básica - em produção, usar xlsx
-    const content = this.generateExcelContent(summary, transactions);
+    const content = this.generateExcelContent(summary, transactions, period);
     this.downloadFile(content, 'relatorio.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   }
 
-  private generatePDFContent(summary: PeriodSummary, transactions: Transaction[]): string {
+  private generatePDFContent(summary: PeriodSummary, transactions: Transaction[], period: string): string {
     const date = new Date().toLocaleDateString('pt-BR');
     const time = new Date().toLocaleTimeString('pt-BR');
     
@@ -29,7 +29,7 @@ export class ExportService {
     content += `     RELATÓRIO FINANCEIRO - SOLARIS\n`;
     content += `═══════════════════════════════════════════════════\n\n`;
     content += `Data de Geração: ${date} às ${time}\n`;
-    content += `Período: ${this.getPeriodLabel(summary.period)}\n`;
+    content += `Período: ${this.getPeriodLabel(period)}\n`;
     content += `Data de Referência: ${this.financeService.formatDate(summary.date)}\n\n`;
     
     content += `═══════════════════════════════════════════════════\n`;
@@ -109,12 +109,12 @@ export class ExportService {
     return labels[method] || method;
   }
 
-  private generateExcelContent(summary: PeriodSummary, transactions: Transaction[]): string {
+  private generateExcelContent(summary: PeriodSummary, transactions: Transaction[], period: string): string {
     const date = new Date().toLocaleDateString('pt-BR');
     
     let content = 'RELATÓRIO FINANCEIRO - SOLARIS\n';
     content += `Data de Geração,${date}\n`;
-    content += `Período,${this.getPeriodLabel(summary.period)}\n`;
+    content += `Período,${this.getPeriodLabel(period)}\n`;
     content += `Data de Referência,${this.financeService.formatDate(summary.date)}\n`;
     content += '\n';
     content += 'RESUMO\n';

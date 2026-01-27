@@ -57,16 +57,16 @@
       <div class="summary-grid">
         <div class="summary-item">
           <div class="summary-label">Entradas</div>
-          <div class="summary-value success">{{ formatCurrency(summary.totalEntradas) }}</div>
+          <div class="summary-value success">{{ financeService.formatCurrency(summary.totalEntradas) }}</div>
         </div>
         <div class="summary-item">
           <div class="summary-label">Saídas</div>
-          <div class="summary-value danger">{{ formatCurrency(summary.totalSaidas) }}</div>
+          <div class="summary-value danger">{{ financeService.formatCurrency(summary.totalSaidas) }}</div>
         </div>
         <div class="summary-item full-width">
           <div class="summary-label">Saldo</div>
           <div class="summary-value" [class.success]="summary.saldo >= 0" [class.danger]="summary.saldo < 0">
-            {{ formatCurrency(summary.saldo) }}
+            {{ financeService.formatCurrency(summary.saldo) }}
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@
               class="chart-bar-fill success" 
               [style.width.%]="getComparisonPercentage(summary.totalEntradas)"
             ></div>
-            <span class="chart-value-inline">{{ formatCurrency(summary.totalEntradas) }}</span>
+            <span class="chart-value-inline">{{ financeService.formatCurrency(summary.totalEntradas) }}</span>
           </div>
         </div>
         <div class="chart-row">
@@ -100,7 +100,7 @@
               class="chart-bar-fill danger" 
               [style.width.%]="getComparisonPercentage(summary.totalSaidas)"
             ></div>
-            <span class="chart-value-inline">{{ formatCurrency(summary.totalSaidas) }}</span>
+            <span class="chart-value-inline">{{ financeService.formatCurrency(summary.totalSaidas) }}</span>
           </div>
         </div>
       </div>
@@ -125,7 +125,7 @@
               [style.width.%]="getPercentage(item.amount)"
             ></div>
           </div>
-          <div class="chart-value">{{ formatCurrency(item.amount) }}</div>
+          <div class="chart-value">{{ financeService.formatCurrency(item.amount) }}</div>
         </div>
       </div>
       <ng-template #noCategoryData>
@@ -152,7 +152,7 @@
               [style.width.%]="getPercentage(item.amount)"
             ></div>
           </div>
-          <div class="chart-value">{{ formatCurrency(item.amount) }}</div>
+          <div class="chart-value">{{ financeService.formatCurrency(item.amount) }}</div>
         </div>
       </div>
       <ng-template #noPaymentData>
@@ -170,19 +170,19 @@
       <ion-item>
         <ion-label>
           <h3>Total de Transações</h3>
-          <p>{{ transactions.length }}</p>
+          <p>{{ filteredTransactions.length }}</p>
         </ion-label>
       </ion-item>
       <ion-item>
         <ion-label>
           <h3>Média de Entradas</h3>
-          <p>{{ formatCurrency(summary ? getAverage(summary.totalEntradas, 'entrada') : 0) }}</p>
+          <p>{{ financeService.formatCurrency(summary ? getAverage(summary.totalEntradas, 'entrada') : 0) }}</p>
         </ion-label>
       </ion-item>
       <ion-item>
         <ion-label>
           <h3>Média de Saídas</h3>
-          <p>{{ formatCurrency(summary ? getAverage(summary.totalSaidas, 'saida') : 0) }}</p>
+          <p>{{ financeService.formatCurrency(summary ? getAverage(summary.totalSaidas, 'saida') : 0) }}</p>
         </ion-label>
       </ion-item>
     </ion-card-content>

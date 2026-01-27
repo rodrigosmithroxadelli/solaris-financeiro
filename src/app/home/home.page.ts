@@ -1,35 +1,68 @@
 import { Component, OnInit } from '@angular/core';
+import { FinanceService, CashFlowSummary } from '../services/finance.service';
+import { Transaction } from '../models/transaction.model';
+
+// Import necessary modules for standalone component and its template
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonGrid, IonRow, IonCol, IonLabel, IonItem } from '@ionic/angular/standalone';
-import { FinanceService, PeriodSummary } from '../services/finance.service';
+import { IonicModule } from '@ionic/angular'; // Provides Ion components and ModalController
 
 @Component({
   selector: 'app-home',
-  templateUrl: './home.page.html',
-  styleUrls: ['./home.page.scss'],
-  standalone: true,
-  imports: [CommonModule, FormsModule, IonContent, IonHeader, IonTitle, IonToolbar, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonGrid, IonRow, IonCol, IonLabel, IonItem]
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
+  standalone: true, // Mark as standalone
+  imports: [
+    CommonModule,
+    IonicModule // Import IonicModule
+  ]
 })
 export class HomePage implements OnInit {
+  transactions: Transaction[] = [];
+  balance = { entradas: 0, saidas: 0, total: 0 };
 
-  todaySummary: PeriodSummary | undefined;
-  weekSummary: PeriodSummary | undefined;
-  monthSummary: PeriodSummary | undefined;
+  todaySummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
+  weekSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
+  monthSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
 
-  constructor(private financeService: FinanceService) { }
+  constructor(
+    public financeService: FinanceService // Make public
+  ) {
+  }
 
   ngOnInit() {
-    const today = new Date().toISOString().split('T')[0];
-    const year = new Date().getFullYear();
-    const month = new Date().getMonth() + 1;
+    // Aqui o app se conecta ao fluxo de dados do Google
+    this.financeService.transactions$.subscribe(data => {
+      this.transactions = data;
+      this.calculateBalance();
+    });
 
-    this.todaySummary = this.financeService.getDailySummary(today);
-    this.weekSummary = this.financeService.getWeeklySummary(today);
-    this.monthSummary = this.financeService.getMonthlySummary(year, month);
+    const today = new Date();
+    this.financeService.getSummaryForPeriod('day', today).subscribe(summary => {
+      this.todaySummary = summary;
+    });
+    this.financeService.getSummaryForPeriod('week', today).subscribe(summary => {
+      this.weekSummary = summary;
+    });
+    this.financeService.getSummaryForPeriod('month', today).subscribe(summary => {
+      this.monthSummary = summary;
+    });
   }
 
-  formatCurrency(value: number): string {
-    return this.financeService.formatCurrency(value);
+  calculateBalance() {
+    const entradas = this.transactions
+      .filter(t => t.type === 'entrada')
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    const saidas = this.transactions
+      .filter(t => t.type === 'saida')
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    this.balance = {
+      entradas,
+      saidas,
+      total: entradas - saidas
+    };
   }
+
+
 }

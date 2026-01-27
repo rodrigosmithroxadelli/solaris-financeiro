@@ -1,2 +1,9 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
+:root {
+  /** primary (Laranja Solaris) **/
+  --ion-color-primary: #df4144;
+  --ion-color-primary-rgb: 242, 93, 39;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #df4144;
+  --ion-color-primary-tint: #df4144;
+}

@@ -1,5 +1,5 @@
 export interface Transaction {
-  id: string;
+  id?: string;
   type: 'entrada' | 'saida';
   title: string;
   amount: number;

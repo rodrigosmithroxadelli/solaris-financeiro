@@ -1,86 +1,131 @@
 <ion-header>
-  <ion-toolbar>
-    <ion-title>Início</ion-title>
+  <ion-toolbar color="primary">
+    <ion-title>Dashboard</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <ion-grid>
-    <ion-row>
-      <!-- Resumo do Dia -->
-      <ion-col size="12" size-md="4">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Resumo do Dia</ion-card-title>
-          </ion-card-header>
-          <ion-card-content *ngIf="todaySummary">
-            <ion-item>
-              <ion-label>Entradas:</ion-label>
-              <ion-label slot="end" color="success">{{ formatCurrency(todaySummary.totalEntradas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label>Saídas:</ion-label>
-              <ion-label slot="end" color="danger">{{ formatCurrency(todaySummary.totalSaidas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label><b>Saldo:</b></ion-label>
-              <ion-label slot="end" [color]="todaySummary.saldo >= 0 ? 'success' : 'danger'">
-                <b>{{ formatCurrency(todaySummary.saldo) }}</b>
-              </ion-label>
-            </ion-item>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
+  <!-- Card de Saldo -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Saldo Atual</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <h1 [ngClass]="balance.total >= 0 ? 'success' : 'danger'">
+        {{ financeService.formatCurrency(balance.total) }}
+      </h1>
+      <div class="balance-details">
+        <div class="entrada">
+          <span>Entradas:</span>
+          <strong>{{ financeService.formatCurrency(balance.entradas) }}</strong>
+        </div>
+        <div class="saida">
+          <span>Saídas:</span>
+          <strong>{{ financeService.formatCurrency(balance.saidas) }}</strong>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
 
-      <!-- Resumo da Semana -->
-      <ion-col size="12" size-md="4">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Resumo da Semana</ion-card-title>
-          </ion-card-header>
-          <ion-card-content *ngIf="weekSummary">
-            <ion-item>
-              <ion-label>Entradas:</ion-label>
-              <ion-label slot="end" color="success">{{ formatCurrency(weekSummary.totalEntradas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label>Saídas:</ion-label>
-              <ion-label slot="end" color="danger">{{ formatCurrency(weekSummary.totalSaidas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label><b>Saldo:</b></ion-label>
-              <ion-label slot="end" [color]="weekSummary.saldo >= 0 ? 'success' : 'danger'">
-                <b>{{ formatCurrency(weekSummary.saldo) }}</b>
-              </ion-label>
-            </ion-item>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
+  <!-- Card de Resumo do Dia -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Resumo do Dia</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="balance-details">
+        <div class="entrada">
+          <span>Entradas:</span>
+          <strong>{{ financeService.formatCurrency(todaySummary.entradas) }}</strong>
+        </div>
+        <div class="saida">
+          <span>Saídas:</span>
+          <strong>{{ financeService.formatCurrency(todaySummary.saidas) }}</strong>
+        </div>
+        <div class="saldo">
+          <span>Saldo:</span>
+          <strong [ngClass]="todaySummary.saldo >= 0 ? 'success' : 'danger'">
+            {{ financeService.formatCurrency(todaySummary.saldo) }}
+          </strong>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
 
-      <!-- Resumo do Mês -->
-      <ion-col size="12" size-md="4">
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>Resumo do Mês</ion-card-title>
-          </ion-card-header>
-          <ion-card-content *ngIf="monthSummary">
-            <ion-item>
-              <ion-label>Entradas:</ion-label>
-              <ion-label slot="end" color="success">{{ formatCurrency(monthSummary.totalEntradas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label>Saídas:</ion-label>
-              <ion-label slot="end" color="danger">{{ formatCurrency(monthSummary.totalSaidas) }}</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-label><b>Saldo:</b></ion-label>
-              <ion-label slot="end" [color]="monthSummary.saldo >= 0 ? 'success' : 'danger'">
-                <b>{{ formatCurrency(monthSummary.saldo) }}</b>
-              </ion-label>
-            </ion-item>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <!-- Card de Resumo da Semana -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Resumo da Semana</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="balance-details">
+        <div class="entrada">
+          <span>Entradas:</span>
+          <strong>{{ financeService.formatCurrency(weekSummary.entradas) }}</strong>
+        </div>
+        <div class="saida">
+          <span>Saídas:</span>
+          <strong>{{ financeService.formatCurrency(weekSummary.saidas) }}</strong>
+        </div>
+        <div class="saldo">
+          <span>Saldo:</span>
+          <strong [ngClass]="weekSummary.saldo >= 0 ? 'success' : 'danger'">
+            {{ financeService.formatCurrency(weekSummary.saldo) }}
+          </strong>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Card de Resumo do Mês -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Resumo do Mês</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="balance-details">
+        <div class="entrada">
+          <span>Entradas:</span>
+          <strong>{{ financeService.formatCurrency(monthSummary.entradas) }}</strong>
+        </div>
+        <div class="saida">
+          <span>Saídas:</span>
+          <strong>{{ financeService.formatCurrency(monthSummary.saidas) }}</strong>
+        </div>
+        <div class="saldo">
+          <span>Saldo:</span>
+          <strong [ngClass]="monthSummary.saldo >= 0 ? 'success' : 'danger'">
+            {{ financeService.formatCurrency(monthSummary.saldo) }}
+          </strong>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Lista de Transações Recentes 
+  <ion-list-header>Transações Recentes</ion-list-header>
+  <ion-list *ngIf="transactions.length > 0; else noTransactions">
+    <ion-item *ngFor="let t of transactions | slice:0:10" lines="full">
+      <ion-icon [name]="t.type === 'entrada' ? 'arrow-up-circle' : 'arrow-down-circle'" [color]="t.type === 'entrada' ? 'success' : 'danger'" slot="start"></ion-icon>
+      <ion-label>
+        <h2>{{ t.title }}</h2>
+        <p>{{ t.category }} - {{ financeService.formatDate(t.date) }}</p>
+      </ion-label>
+      <ion-note slot="end" [color]="t.type === 'entrada' ? 'success' : 'danger'">
+        {{ financeService.formatCurrency(t.amount) }}
+      </ion-note>
+    </ion-item>
+  </ion-list>-->
+
+  <!-- Estado de Não Há Transações -->
+  <ng-template #noTransactions>
+    <div class="empty-state">
+      <ion-icon name="receipt-outline"></ion-icon>
+      <p>Nenhuma transação registrada ainda.</p>
+      <p>Clique no botão '+' para adicionar a primeira!</p>
+    </div>
+  </ng-template>
+
+
+
 </ion-content>

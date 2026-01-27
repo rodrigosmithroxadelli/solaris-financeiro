@@ -1,0 +1,127 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ isEditMode ? 'Editar' : 'Nova' }} Transação</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancel()">
+        <ion-icon name="close" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="save()">
+    <ion-item>
+      <ion-label position="stacked">Tipo *</ion-label>
+      <ion-select [(ngModel)]="type" name="type" (ionChange)="category = ''">
+        <ion-select-option value="entrada">Entrada</ion-select-option>
+        <ion-select-option value="saida">Saída</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Título *</ion-label>
+      <ion-input
+        type="text"
+        [(ngModel)]="title"
+        name="title"
+        placeholder="Ex: Lavagem Simples"
+        required
+      ></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Valor (R$) *</ion-label>
+      <ion-input
+        type="number"
+        [(ngModel)]="amount"
+        name="amount"
+        placeholder="0.00"
+        step="0.01"
+        min="0"
+        required
+      ></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Categoria *</ion-label>
+      <ion-select [(ngModel)]="category" name="category">
+        <ion-select-option *ngFor="let cat of availableCategories" [value]="cat">
+          {{ cat }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Forma de Pagamento *</ion-label>
+      <ion-select [(ngModel)]="paymentMethod" name="paymentMethod">
+        <ion-select-option *ngFor="let method of paymentMethods" [value]="method.value">
+          {{ method.label }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Data *</ion-label>
+      <ion-datetime-button datetime="datetime"></ion-datetime-button>
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime
+            id="datetime"
+            [(ngModel)]="date"
+            name="date"
+            presentation="date"
+            [value]="date"
+          ></ion-datetime>
+        </ng-template>
+      </ion-modal>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Observações</ion-label>
+      <ion-textarea
+        [(ngModel)]="description"
+        name="description"
+        placeholder="Adicione observações sobre esta transação"
+        rows="3"
+      ></ion-textarea>
+    </ion-item>
+
+    <div class="section-title">Informações do Cliente (Opcional)</div>
+
+    <ion-item>
+      <ion-label position="stacked">Nome do Cliente</ion-label>
+      <ion-input
+        type="text"
+        [(ngModel)]="clientName"
+        name="clientName"
+        placeholder="Ex: João da Silva"
+      ></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Telefone do Cliente</ion-label>
+      <ion-input
+        type="tel"
+        [(ngModel)]="clientPhone"
+        name="clientPhone"
+        placeholder="Ex: (11) 99999-9999"
+      ></ion-input>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Endereço do Cliente</ion-label>
+      <ion-textarea
+        [(ngModel)]="clientAddress"
+        name="clientAddress"
+        placeholder="Ex: Rua das Flores, 123, São Paulo, SP"
+        rows="2"
+      ></ion-textarea>
+    </ion-item>
+
+    <ion-button expand="block" type="submit" class="ion-margin-top" [disabled]="!title || !amount || !category">
+      <ion-icon name="checkmark" slot="start"></ion-icon>
+      {{ isEditMode ? 'Salvar Alterações' : 'Adicionar' }}
+    </ion-button>
+  </form>
+</ion-content>

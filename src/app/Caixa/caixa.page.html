@@ -1,0 +1,122 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Caixa</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Resumo do Saldo -->
+  <ion-card color="primary">
+    <ion-card-header>
+      <ion-card-title>Saldo Atual</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <div class="summary-label">Entradas</div>
+          <div class="summary-value success">{{ formatCurrency(summary.totalEntradas) }}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-label">Saídas</div>
+          <div class="summary-value danger">{{ formatCurrency(summary.totalSaidas) }}</div>
+        </div>
+        <div class="summary-item full-width">
+          <div class="summary-label">Saldo</div>
+          <div class="summary-value" [class.success]="summary.saldo >= 0" [class.danger]="summary.saldo < 0">
+            {{ formatCurrency(summary.saldo) }}
+          </div>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Filtros -->
+  <ion-card>
+    <ion-card-content>
+      <ion-searchbar
+        [(ngModel)]="searchTerm"
+        (ionInput)="onSearchChange($event)"
+        placeholder="Buscar transações..."
+        debounce="300"
+      ></ion-searchbar>
+
+      <div class="date-filter">
+        <ion-datetime-button datetime="filter-datetime"></ion-datetime-button>
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime
+              id="filter-datetime"
+              presentation="date"
+              [(ngModel)]="selectedDate"
+              (ionChange)="onDateChange($event)"
+            ></ion-datetime>
+          </ng-template>
+        </ion-modal>
+        <ion-button *ngIf="selectedDate" fill="clear" size="small" (click)="clearDateFilter()">
+          Limpar filtro
+        </ion-button>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Lista de Transações -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Transações ({{ filteredTransactions.length }})</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list *ngIf="filteredTransactions.length > 0; else emptyState">
+        <ion-item *ngFor="let transaction of filteredTransactions" button>
+          <ion-icon
+            [name]="getTransactionIcon(transaction.type)"
+            [color]="getTransactionColor(transaction.type)"
+            slot="start"
+          ></ion-icon>
+          <ion-label>
+            <h2>{{ transaction.title }}</h2>
+            <p>{{ transaction.category }} • {{ formatDate(transaction.date) }}</p>
+            <p *ngIf="transaction.clientName">
+              <ion-icon name="person-circle-outline" class="small-icon"></ion-icon>
+              {{ transaction.clientName }}
+            </p>
+            <p *ngIf="transaction.description" class="description">{{ transaction.description }}</p>
+          </ion-label>
+          <div slot="end" class="transaction-actions">
+            <ion-badge [color]="getTransactionColor(transaction.type)">
+              {{ formatCurrency(transaction.amount) }}
+            </ion-badge>
+            <div class="action-buttons">
+              <ion-button fill="clear" size="small" (click)="editTransaction(transaction)">
+                <ion-icon name="create" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button fill="clear" size="small" color="danger" (click)="deleteTransaction(transaction)">
+                <ion-icon name="trash" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <p>Nenhuma transação encontrada</p>
+          <ion-button (click)="openAddModal()" color="primary">
+            <ion-icon name="add" slot="start"></ion-icon>
+            Adicionar primeira transação
+          </ion-button>
+        </div>
+      </ng-template>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Botão Flutuante -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="openAddModal()" color="primary">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

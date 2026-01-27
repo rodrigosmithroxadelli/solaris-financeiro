@@ -1,0 +1,86 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Início</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-grid>
+    <ion-row>
+      <!-- Resumo do Dia -->
+      <ion-col size="12" size-md="4">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Resumo do Dia</ion-card-title>
+          </ion-card-header>
+          <ion-card-content *ngIf="todaySummary">
+            <ion-item>
+              <ion-label>Entradas:</ion-label>
+              <ion-label slot="end" color="success">{{ formatCurrency(todaySummary.totalEntradas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label>Saídas:</ion-label>
+              <ion-label slot="end" color="danger">{{ formatCurrency(todaySummary.totalSaidas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label><b>Saldo:</b></ion-label>
+              <ion-label slot="end" [color]="todaySummary.saldo >= 0 ? 'success' : 'danger'">
+                <b>{{ formatCurrency(todaySummary.saldo) }}</b>
+              </ion-label>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+
+      <!-- Resumo da Semana -->
+      <ion-col size="12" size-md="4">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Resumo da Semana</ion-card-title>
+          </ion-card-header>
+          <ion-card-content *ngIf="weekSummary">
+            <ion-item>
+              <ion-label>Entradas:</ion-label>
+              <ion-label slot="end" color="success">{{ formatCurrency(weekSummary.totalEntradas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label>Saídas:</ion-label>
+              <ion-label slot="end" color="danger">{{ formatCurrency(weekSummary.totalSaidas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label><b>Saldo:</b></ion-label>
+              <ion-label slot="end" [color]="weekSummary.saldo >= 0 ? 'success' : 'danger'">
+                <b>{{ formatCurrency(weekSummary.saldo) }}</b>
+              </ion-label>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+
+      <!-- Resumo do Mês -->
+      <ion-col size="12" size-md="4">
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Resumo do Mês</ion-card-title>
+          </ion-card-header>
+          <ion-card-content *ngIf="monthSummary">
+            <ion-item>
+              <ion-label>Entradas:</ion-label>
+              <ion-label slot="end" color="success">{{ formatCurrency(monthSummary.totalEntradas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label>Saídas:</ion-label>
+              <ion-label slot="end" color="danger">{{ formatCurrency(monthSummary.totalSaidas) }}</ion-label>
+            </ion-item>
+            <ion-item>
+              <ion-label><b>Saldo:</b></ion-label>
+              <ion-label slot="end" [color]="monthSummary.saldo >= 0 ? 'success' : 'danger'">
+                <b>{{ formatCurrency(monthSummary.saldo) }}</b>
+              </ion-label>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>

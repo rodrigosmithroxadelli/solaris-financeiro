@@ -1,0 +1,155 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Administração</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Informações do Usuário Atual -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="person"></ion-icon>
+        Usuário Atual
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label>
+          <h2>{{ currentUser?.name }}</h2>
+          <p>{{ currentUser?.username }}</p>
+        </ion-label>
+        <ion-badge [color]="getRoleColor(currentUser?.role || 'user')" slot="end">
+          {{ getRoleLabel(currentUser?.role || 'user') }}
+        </ion-badge>
+      </ion-item>
+      <ion-button expand="block" color="danger" (click)="logout()" class="ion-margin-top">
+        <ion-icon name="log-out" slot="start"></ion-icon>
+        Sair
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Gerenciar Usuários (Apenas Admin) -->
+  <ion-card *ngIf="isAdmin">
+    <ion-card-header>
+      <ion-card-title>
+        <ion-icon name="shield-checkmark"></ion-icon>
+        Gerenciar Usuários
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-button expand="block" (click)="openAddUserModal()" class="ion-margin-bottom">
+        <ion-icon name="person-add" slot="start"></ion-icon>
+        Adicionar Usuário
+      </ion-button>
+
+      <ion-list *ngIf="users.length > 0">
+        <ion-item *ngFor="let user of users">
+          <ion-label>
+            <h2>{{ user.name }}</h2>
+            <p>{{ user.username }}</p>
+            <p class="created-date">Criado em: {{ formatDate(user.createdAt) }}</p>
+          </ion-label>
+          <div slot="end" class="user-actions">
+            <ion-badge [color]="getRoleColor(user.role)">
+              {{ getRoleLabel(user.role) }}
+            </ion-badge>
+            <div class="action-buttons">
+              <ion-button fill="clear" size="small" (click)="openEditUserModal(user)">
+                <ion-icon name="create" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button 
+                fill="clear" 
+                size="small" 
+                color="danger" 
+                (click)="deleteUser(user)"
+                [disabled]="user.id === currentUser?.id"
+              >
+                <ion-icon name="trash" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </div>
+        </ion-item>
+      </ion-list>
+
+      <div *ngIf="users.length === 0" class="empty-state">
+        <p>Nenhum usuário cadastrado</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Acesso Negado -->
+  <ion-card *ngIf="!isAdmin">
+    <ion-card-content>
+      <div class="access-denied">
+        <ion-icon name="lock-closed" size="large"></ion-icon>
+        <p>Apenas administradores podem acessar esta área</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Modal de Novo/Editar Usuário -->
+  <ion-modal [isOpen]="showUserModal" (didDismiss)="showUserModal = false">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ editingUser ? 'Editar' : 'Novo' }} Usuário</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="showUserModal = false">Fechar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form (ngSubmit)="saveUser()">
+          <ion-item>
+            <ion-label position="stacked">Nome *</ion-label>
+            <ion-input
+              type="text"
+              [(ngModel)]="newUser.name"
+              name="name"
+              placeholder="Nome completo"
+              required
+            ></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Usuário *</ion-label>
+            <ion-input
+              type="text"
+              [(ngModel)]="newUser.username"
+              name="username"
+              placeholder="Nome de usuário"
+              required
+            ></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">
+              Senha {{ editingUser ? '(deixe em branco para manter)' : '*' }}
+            </ion-label>
+            <ion-input
+              type="password"
+              [(ngModel)]="newUser.password"
+              name="password"
+              [placeholder]="editingUser ? 'Nova senha (opcional)' : 'Senha'"
+              [required]="!editingUser"
+            ></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Tipo de Acesso *</ion-label>
+            <ion-select [(ngModel)]="newUser.role" name="role">
+              <ion-select-option value="user">Usuário</ion-select-option>
+              <ion-select-option value="admin">Administrador</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-button expand="block" type="submit" class="ion-margin-top">
+            {{ editingUser ? 'Salvar Alterações' : 'Criar Usuário' }}
+          </ion-button>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

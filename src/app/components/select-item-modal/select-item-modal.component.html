@@ -1,0 +1,27 @@
+<!-- src/app/components/select-item-modal/select-item-modal.component.html -->
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Selecionar Item</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Fechar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-searchbar
+    [(ngModel)]="searchTerm"
+    (ionInput)="filterItems()"
+    placeholder="Buscar item..."
+    debounce="300"
+  ></ion-searchbar>
+
+  <ion-list>
+    <ion-item button *ngFor="let item of filteredItems" (click)="selectItem(item)">
+      <ion-label>
+        <h2>{{ item.name }}</h2>
+        <p>{{ item.unitPrice | currency:'BRL' }}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>

@@ -1,13 +1,14 @@
 export interface User {
-  id: string;
-  username: string;
-  password: string; // Em produção, deve ser hash
-  name: string;
-  role: 'admin' | 'user';
-  createdAt: string;
+  id: string; // Firebase Auth UID
+  tenantId: string; // ID do tenant ao qual o usuário pertence
+  email: string;
+  displayName?: string;
+  photoURL?: string | null;
+  role: 'admin' | 'user'; // Adicionado para controle de acesso
+  createdAt: string; // Firestore Timestamp ou Date string
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }

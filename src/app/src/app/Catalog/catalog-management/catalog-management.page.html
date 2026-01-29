@@ -1,0 +1,81 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/admin"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Gerenciar Catálogo</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Gerenciar Catálogo</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div *ngIf="catalogItems.length === 0" class="empty-state">
+    <p>Nenhum item no catálogo. Comece adicionando um!</p>
+  </div>
+
+  <ion-list *ngIf="catalogItems.length > 0">
+    <ion-item *ngFor="let item of catalogItems">
+      <ion-label>
+        <h2>{{ item.name }}</h2>
+        <p>{{ item.unitPrice | currency:'BRL' }}</p>
+      </ion-label>
+      <ion-button fill="clear" slot="end" (click)="openItemModal(item)">
+        <ion-icon slot="icon-only" name="create"></ion-icon>
+      </ion-button>
+      <ion-button fill="clear" slot="end" color="danger" (click)="deleteItem(item)">
+        <ion-icon slot="icon-only" name="trash"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button (click)="openItemModal()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- Modal para Adicionar/Editar Item -->
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="closeModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ editingItem ? 'Editar Item' : 'Novo Item' }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeModal()">Fechar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form (ngSubmit)="saveItem()">
+          <ion-item>
+            <ion-label position="stacked">Nome do Serviço/Produto *</ion-label>
+            <ion-input
+              type="text"
+              [(ngModel)]="formItem.name"
+              name="itemName"
+              required
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Preço (R$) *</ion-label>
+            <ion-input
+              type="number"
+              [(ngModel)]="formItem.unitPrice"
+              name="itemPrice"
+              required
+            ></ion-input>
+          </ion-item>
+          
+          <ion-button expand="block" type="submit" class="ion-margin-top">
+            Salvar
+          </ion-button>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

@@ -8,6 +8,9 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { isDevMode } from '@angular/core';
 import { provideServiceWorker } from '@angular/service-worker';
+import { provideAnimations } from '@angular/platform-browser/animations'; // Add this import
+import { provideHttpClient } from '@angular/common/http'; // Add this import
+
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { environment } from '@environments/environment'; // Import environment
@@ -25,6 +28,7 @@ bootstrapApplication(AppComponent, {
     }),
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)), // Use environment config
     provideFirestore(() => getFirestore()),
+    provideAnimations(), // Add this provider
+    provideHttpClient(), // Add this provider
   ],
 });
-

@@ -1,23 +1,46 @@
-<ion-tabs>
+<ion-tabs #tabs (ionTabsDidChange)="onTabChange($event)">
+  <ion-router-outlet></ion-router-outlet>
   <ion-tab-bar slot="bottom">
-    <ion-tab-button tab="dashboard" href="/tabs/dashboard">
+    <ion-tab-button tab="inicio" (click)="selectTab('inicio')">
       <ion-icon aria-hidden="true" name="stats-chart-outline"></ion-icon>
       <ion-label>Início</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="caixa" href="/tabs/caixa">
+    <ion-tab-button tab="caixa" (click)="selectTab('caixa')">
       <ion-icon aria-hidden="true" name="wallet"></ion-icon>
       <ion-label>Caixa</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="relatorios" href="/tabs/relatorios">
+    <ion-tab-button tab="catalogo" (click)="selectTab('catalogo')">
+      <ion-icon aria-hidden="true" name="cube-outline"></ion-icon>
+      <ion-label>Catálogo</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="os" (click)="selectTab('os')">
+      <ion-icon aria-hidden="true" name="document-text-outline"></ion-icon>
+      <ion-label>Ordem de Serviço</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="clients" (click)="selectTab('clients')">
+      <ion-icon aria-hidden="true" name="people-outline"></ion-icon>
+      <ion-label>Clientes</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="relatorios" (click)="selectTab('relatorios')">
       <ion-icon aria-hidden="true" name="bar-chart"></ion-icon>
       <ion-label>Relatórios</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="admin" href="/tabs/admin">
+    <ion-tab-button tab="admin" (click)="selectTab('admin')">
       <ion-icon aria-hidden="true" name="settings"></ion-icon>
       <ion-label>Admin</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 </ion-tabs>
+
+<!-- Botão Flutuante Dinâmico -->
+<ion-fab *ngIf="activeTab === 'caixa'" vertical="bottom" horizontal="end" slot="fixed">
+  <ion-fab-button (click)="onFabClick()">
+    <ion-icon name="add"></ion-icon>
+  </ion-fab-button>
+</ion-fab>

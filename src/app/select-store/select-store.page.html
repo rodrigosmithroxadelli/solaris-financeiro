@@ -1,0 +1,41 @@
+<ion-content class="ion-text-center">
+  <div class="bg-overlay">
+    <div class="container">
+      
+      <div class="logo-container">
+        <img src="assets/icon/logotipo-piloto.png" alt="Piloto" class="main-logo">
+      </div>
+
+      <h2 class="welcome-text">Selecione a Unidade</h2>
+
+      <div class="store-buttons">
+        <ion-card button (click)="selectStore('solaris-1')" class="store-card matriz">
+          <div class="card-content-wrapper">
+            <div class="icon-box">
+              <ion-icon name="business"></ion-icon>
+            </div>
+            <div class="text-box">
+              <h3>Solaris Matriz</h3>
+              <p>Unidade Principal</p>
+            </div>
+            <ion-icon name="chevron-forward" color="medium"></ion-icon>
+          </div>
+        </ion-card>
+
+        <ion-card button (click)="selectStore('solaris-2')" class="store-card filial">
+          <div class="card-content-wrapper">
+            <div class="icon-box">
+              <ion-icon name="storefront"></ion-icon>
+            </div>
+            <div class="text-box">
+              <h3>Solaris Filial</h3>
+              <p>Unidade Secundária</p>
+            </div>
+            <ion-icon name="chevron-forward" color="medium"></ion-icon>
+          </div>
+        </ion-card>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

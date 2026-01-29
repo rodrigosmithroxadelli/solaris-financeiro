@@ -1,0 +1,59 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>{{ isEditMode ? 'Editar Cliente' : 'Novo Cliente' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()">Cancelar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (ngSubmit)="save()">
+    <ion-list>
+      <ion-item>
+        <ion-label position="stacked">Nome Completo *</ion-label>
+        <ion-input type="text" [(ngModel)]="clientForm.name" name="name" required></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">WhatsApp *</ion-label>
+        <ion-input type="tel" [(ngModel)]="clientForm.whatsapp" name="whatsapp" required></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Email</ion-label>
+        <ion-input type="email" [(ngModel)]="clientForm.email" name="email"></ion-input>
+      </ion-item>
+    </ion-list>
+
+    <ion-card class="ion-margin-top">
+      <ion-card-header class="ion-justify-content-between ion-align-items-center">
+        <ion-card-title>
+          <ion-icon name="car-sport" slot="start"></ion-icon>
+          Veículos
+        </ion-card-title>
+        <ion-button fill="clear" (click)="addVehicle()">
+          <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+        </ion-button>
+      </ion-card-header>
+      <ion-card-content>
+        <div *ngIf="!clientForm.vehicles || clientForm.vehicles.length === 0" class="empty-state">
+          <p>Nenhum veículo adicionado.</p>
+        </div>
+        <ion-list *ngIf="clientForm.vehicles && clientForm.vehicles.length > 0">
+          <ion-item *ngFor="let vehicle of clientForm.vehicles; let i = index">
+            <ion-label>
+              <h2>{{ vehicle.plate }}</h2>
+              <p>{{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.color }})</p>
+            </ion-label>
+            <ion-button fill="clear" color="danger" slot="end" (click)="removeVehicle(i)">
+              <ion-icon name="trash" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button expand="block" type="submit" class="ion-margin-top" [disabled]="!clientForm.name || !clientForm.whatsapp">
+      Salvar Cliente
+    </ion-button>
+  </form>
+</ion-content>

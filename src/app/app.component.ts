@@ -1,26 +1,32 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { SwUpdate, VersionEvent, VersionReadyEvent } from '@angular/service-worker'; // Added SwUpdate, VersionEvent, VersionReadyEvent
-import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { Component, OnInit, inject } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
+import { SwUpdate, VersionEvent } from '@angular/service-worker';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
-  imports: [IonApp, IonRouterOutlet],
+  standalone: true,
+  imports: [
+    RouterModule
+  ],
 })
 export class AppComponent implements OnInit {
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private swUpdate: SwUpdate // Injected SwUpdate
-  ) {}
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private swUpdate = inject(SwUpdate);
+
 
   ngOnInit() {
-    // Verifica autenticação ao iniciar
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/login']);
-    }
+    this.authService.currentUser$.subscribe(user => {
+      console.log('AppComponent: currentUser$ subscription - user:', user);
+      if (!user) {
+        console.log('AppComponent: User is null, navigating to /login.');
+        this.router.navigate(['/login']);
+      } else {
+        console.log('AppComponent: User is authenticated, current user ID:', user.id);
+      }
+    });
 
     // --- Service Worker Update Logic ---
     if (this.swUpdate.isEnabled) {

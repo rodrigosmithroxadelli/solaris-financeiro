@@ -95,12 +95,14 @@ export class StorageService {
     if (users.length === 0) {
       const admin: User = {
         id: this.generateId(),
-        username: 'admin',
-        password: 'admin123', // Em produção, deve ser hash
-        name: 'Administrador',
+        email: 'admin@solaris.com', // Use email
+        tenantId: 'default_tenant', // Placeholder tenantId for local admin
+        displayName: 'Administrador', // Use displayName
         role: 'admin',
         createdAt: new Date().toISOString()
       };
+      // Password is not stored directly in the User model in local storage
+      // For authentication, this would rely on AuthService
       this.addUser(admin);
     }
   }

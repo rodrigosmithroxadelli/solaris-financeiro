@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -28,8 +28,11 @@ import {
 import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 import { User } from '../models/user.model';
+import { firstValueFrom } from 'rxjs';
 import { addIcons } from 'ionicons';
-import { personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed } from 'ionicons/icons';
+import { personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed, business, settings } from 'ionicons/icons';
+import { CompanyProfile } from '../models/company-profile.model'; // Import CompanyProfile model
+import { CompanyProfileService } from '../services/company-profile.service'; // Import CompanyProfileService
 
 @Component({
   selector: 'app-admin',
@@ -61,34 +64,100 @@ import { personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed }
   ]
 })
 export class AdminPage implements OnInit {
+  private authService = inject(AuthService);
+  private storageService = inject(StorageService);
+  private router = inject(Router);
+  private alertController = inject(AlertController);
+  private toastController = inject(ToastController);
+  private companyProfileService = inject(CompanyProfileService); // Inject CompanyProfileService
+
   users: User[] = [];
   currentUser: User | null = null;
-  isAdmin: boolean = false;
+  currentCompanyProfile: CompanyProfile | null = null; // Property to hold the loaded company profile
+  companyProfileForm: Partial<CompanyProfile> = { // Form model for company profile
+    name: '',
+    contactPhone: '',
+    contactEmail: '',
+    address: ''
+  };
   
   // Modal de novo/editar usuário
   showUserModal: boolean = false;
   editingUser: User | null = null;
   newUser: Partial<User> = {
-    username: '',
-    password: '',
-    name: '',
+    email: '', // Use email instead of username
+    // password is not part of the User model directly, but needed for registration/update
+    displayName: '', // Use displayName instead of name
     role: 'user'
   };
 
-  constructor(
-    private authService: AuthService,
-    private storageService: StorageService,
-    private router: Router,
-    private alertController: AlertController,
-    private toastController: ToastController
-  ) {
-    addIcons({ personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed });
+  constructor() {
+    addIcons({ personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed, business, settings }); // Added 'settings' icon
   }
 
   ngOnInit() {
-    this.currentUser = this.authService.getCurrentUser();
-    this.isAdmin = this.authService.isAdmin();
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+    });
     this.loadUsers();
+    this.loadCompanyProfile(); // Load company profile when the page initializes
+  }
+
+  loadCompanyProfile() {
+    this.companyProfileService.getCompanyProfile().subscribe(profile => {
+      if (profile) {
+        this.currentCompanyProfile = profile;
+        // Populate the form with existing data
+        this.companyProfileForm = { ...profile };
+      } else {
+        // If no profile exists, ensure form is empty
+        this.companyProfileForm = {
+          name: '',
+          contactPhone: '',
+          contactEmail: '',
+          address: ''
+        };
+      }
+    });
+  }
+
+  async saveCompanyProfile() {
+    if (!this.companyProfileForm.name) {
+      await this.showToast('O nome da empresa é obrigatório.', 'warning');
+      return;
+    }
+
+    try {
+      const currentUserAuth = await firstValueFrom(this.authService.currentUser$);
+      if (!currentUserAuth?.tenantId) {
+        await this.showToast('Tenant ID não encontrado para o usuário atual.', 'danger');
+        return;
+      }
+
+      const profileToSave: Partial<CompanyProfile> = {
+        tenantId: currentUserAuth.tenantId,
+        name: this.companyProfileForm.name,
+        contactPhone: this.companyProfileForm.contactPhone,
+        contactEmail: this.companyProfileForm.contactEmail,
+        address: this.companyProfileForm.address,
+        id: this.currentCompanyProfile?.id
+      };
+
+      // Clean the object to remove any keys with undefined values before saving
+      Object.keys(profileToSave).forEach(keyStr => {
+        const key = keyStr as keyof Partial<CompanyProfile>;
+        if (profileToSave[key] === undefined) {
+          delete profileToSave[key];
+        }
+      });
+      
+      await this.companyProfileService.saveCompanyProfile(profileToSave as CompanyProfile);
+      await this.showToast('Perfil da empresa salvo com sucesso!', 'success');
+      this.loadCompanyProfile(); // Reload to update displayed data
+    } catch (error) {
+      console.error('Erro ao salvar perfil da empresa:', error);
+      await this.showToast('Erro ao salvar perfil da empresa.', 'danger');
+    }
   }
 
   loadUsers() {
@@ -98,9 +167,8 @@ export class AdminPage implements OnInit {
   openAddUserModal() {
     this.editingUser = null;
     this.newUser = {
-      username: '',
-      password: '',
-      name: '',
+      email: '',
+      displayName: '',
       role: 'user'
     };
     this.showUserModal = true;
@@ -109,60 +177,60 @@ export class AdminPage implements OnInit {
   openEditUserModal(user: User) {
     this.editingUser = user;
     this.newUser = {
-      username: user.username,
-      password: '', // Não mostrar senha
-      name: user.name,
+      email: user.email, // Use email
+      // password: '', // Password is not directly stored in User model
+      displayName: user.displayName, // Use displayName
       role: user.role
     };
     this.showUserModal = true;
   }
 
   async saveUser() {
-    if (!this.newUser.username || !this.newUser.name) {
+    if (!this.newUser.email || !this.newUser.displayName) { // Changed validation
       await this.showToast('Preencha todos os campos obrigatórios', 'warning');
       return;
     }
 
+    // TenantId is essential for multi-tenancy. We need it from the current authenticated user.
+    const currentUserAuth = await firstValueFrom(this.authService.currentUser$);
+    if (!currentUserAuth?.tenantId) {
+      await this.showToast('Tenant ID não encontrado para o usuário atual.', 'danger');
+      return;
+    }
+    const tenantId = currentUserAuth.tenantId;
+
     if (this.editingUser) {
       // Editar usuário existente
-      if (!this.newUser.password) {
-        // Se não informou nova senha, manter a antiga
-        const oldUser = this.storageService.getUsers().find(u => u.id === this.editingUser!.id);
-        if (oldUser) {
-          this.newUser.password = oldUser.password;
-        }
-      }
+      // Password handling removed for now, as it's not part of User model for Firebase Auth direct management
       this.storageService.updateUser(this.editingUser.id, {
-        username: this.newUser.username!,
-        password: this.newUser.password!,
-        name: this.newUser.name!,
+        tenantId: tenantId, // Ensure tenantId is passed for update
+        email: this.newUser.email!, // Use email
+        displayName: this.newUser.displayName!, // Use displayName
         role: this.newUser.role!
       });
       await this.showToast('Usuário atualizado com sucesso', 'success');
     } else {
       // Criar novo usuário
-      if (!this.newUser.password) {
-        await this.showToast('A senha é obrigatória para novos usuários', 'warning');
-        return;
-      }
-
-      const user: User = {
-        id: this.generateId(),
-        username: this.newUser.username!,
-        password: this.newUser.password!,
-        name: this.newUser.name!,
+      // Password handling is for AuthService.register, not direct User model
+      // For now, create user profile in Firestore directly. A proper user registration flow would use AuthService.register.
+      // This part needs careful design for multi-tenancy user creation.
+      const userToSave: User = {
+        id: this.generateId(), // Temporary ID, would be Firebase Auth UID
+        tenantId: tenantId,
+        email: this.newUser.email!,
+        displayName: this.newUser.displayName!,
         role: this.newUser.role!,
         createdAt: new Date().toISOString()
       };
 
       // Verificar se usuário já existe
-      const existingUser = this.users.find(u => u.username === user.username);
+      const existingUser = this.users.find(u => u.email === userToSave.email); // Check by email
       if (existingUser) {
         await this.showToast('Este usuário já existe', 'danger');
         return;
       }
 
-      this.storageService.addUser(user);
+      this.storageService.addUser(userToSave); // For now, use local storage
       await this.showToast('Usuário criado com sucesso', 'success');
     }
 
@@ -172,14 +240,14 @@ export class AdminPage implements OnInit {
 
   async deleteUser(user: User) {
     // Não permitir deletar a si mesmo
-    if (user.id === this.currentUser?.id) {
-      await this.showToast('Você não pode excluir seu próprio usuário', 'warning');
+    if (user.email === this.currentUser?.email) { // Compare with Firebase email
+      await this.showToast('Você não pode excluir seu próprio usuário autenticado', 'warning');
       return;
     }
 
     const alert = await this.alertController.create({
       header: 'Confirmar exclusão',
-      message: `Deseja realmente excluir o usuário "${user.name}"?`,
+      message: `Deseja realmente excluir o usuário "${user.displayName}"?`,
       buttons: [
         {
           text: 'Cancelar',

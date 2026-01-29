@@ -116,8 +116,8 @@
       </ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <div *ngIf="getCategoryEntries().length > 0; else noCategoryData">
-        <div *ngFor="let item of getCategoryEntries()" class="chart-item">
+      <div *ngIf="categoryEntries.length > 0; else noCategoryData">
+        <div *ngFor="let item of categoryEntries" class="chart-item">
           <div class="chart-label">{{ item.category }}</div>
           <div class="chart-bar">
             <div 
@@ -143,8 +143,8 @@
       </ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <div *ngIf="getPaymentMethodEntries().length > 0; else noPaymentData">
-        <div *ngFor="let item of getPaymentMethodEntries()" class="chart-item">
+      <div *ngIf="paymentMethodEntries.length > 0; else noPaymentData">
+        <div *ngFor="let item of paymentMethodEntries" class="chart-item">
           <div class="chart-label">{{ item.method }}</div>
           <div class="chart-bar">
             <div 

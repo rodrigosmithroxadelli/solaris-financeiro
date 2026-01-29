@@ -1,28 +1,165 @@
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100%;
-  padding: 20px;
+.custom-background {
+    --background: #000000;
+    text-align: center;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    .logo-image {
+      max-width: auto; /* Adjust as needed */
+      height: auto; /* Maintain aspect ratio */
+      margin-top: -150px;
+      transition: transform 0.3s ease;
+    }
+
+
+  }
+
+  .login-section {
+    height: 70vh;
+    width: 100%;
+    max-width: 500px;
+    background: #ffffff;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    position: fixed;
+    margin: auto;
+    border-top-left-radius: 46px;
+    border-top-right-radius: 46px;
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: translateY(0px);
+    }
+
+    .heading {
+      margin-top: 20px;
+
+      h1 {
+        font-size: 1.6rem;
+        font-weight: bolder;
+        color: #000; /* Alterado para preto */
+      }
+
+      p {
+        margin-top: 20px;
+        font-size: 1rem;
+        color: #000000;
+      }
+    }
+
+    .login-form {
+      .form-input {
+        position: relative;
+        margin-bottom: 10px;
+
+        ion-item {
+          --background: #f0f0f0; /* Fundo cinza claro */
+          --border-radius: 8px; /* Bordas arredondadas */
+          --border-color: transparent; /* Remove a borda padrão do Ionic */
+          --highlight-background: transparent; /* Garante que o fundo não mude no foco/hover */
+          --highlight-color: transparent; /* Garante que a borda de destaque não apareça */
+        }
+
+        ion-item::part(native) {
+          padding-left: 0;
+        }
+        ion-icon {
+          position: absolute;
+          top: 16px;
+          z-index: 2;
+          font-size: 1.3rem;
+          left: 5px;
+          color: #7b7b7b; /* Alterado para cinza para combinar com o texto */
+        }
+
+        ion-label {
+          position: absolute;
+          margin-left: 35px;
+          font-weight: bolder;
+          font-size: 0.9rem;
+          top: 2px;
+          color: #000; /* Alterado para preto */
+        }
+
+        ion-input {
+          font-size: 0.9rem;
+          --padding-start: 36px;
+          --padding-top: 36px;
+          color: #000; /* Alterado para preto para ser visível no fundo cinza claro */
+        }
+      }
+    }
+    .action-button {
+      text-align: center;
+      .login-button {
+        --background: #000; /* Fundo preto */
+        --color: #fff; /* Letra branca */
+        width: 100%;
+        font-weight: bold;
+      }
+      .forgot-password {
+        margin-top: 15px;
+        a {
+          color: #7b7b7b; /* Cor cinza para o link "Esqueci minha senha" */
+          text-decoration: none;
+          font-size: 0.9rem;
+        }
+      }
+      /* Estilizando o botão "Registrar" (fill="clear") */
+      ion-button[fill="clear"] {
+        --color: #7b7b7b; /* Cor cinza para o texto do botão "Registrar" */
+        font-weight: normal;
+        margin-top: 10px; /* Ajuste o espaçamento conforme necessário */
+      }
+    }
+  }
+
+ @keyframes successPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 203, 5, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 203, 5, 0.9);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 203, 5, 0.7);
+  }
 }
 
-ion-card {
-  max-width: 400px;
-  width: 100%;
-  margin: auto;
+.logo-image.success-animation {
+  animation: successPulse 1s ease-out forwards;
 }
 
-ion-item {
-  --padding-start: 0;
-  margin-bottom: 16px;
+ @keyframes errorShake {
+  0% { transform: translateX(0); filter: hue-rotate(0deg) saturate(100%); }
+  25% { transform: translateX(-5px); filter: hue-rotate(-10deg) saturate(150%); }
+  50% { transform: translateX(5px); filter: hue-rotate(10deg) saturate(150%); }
+  75% { transform: translateX(-5px); filter: hue-rotate(-10deg) saturate(150%); }
+  100% { transform: translateX(0); filter: hue-rotate(0deg) saturate(100%); }
 }
 
-ion-icon {
-  margin-right: 8px;
-  color: var(--ion-color-primary);
+.logo-image.error-animation {
+  animation: errorShake 0.5s ease-in-out forwards;
+  filter: hue-rotate(-20deg) saturate(200%) brightness(80%); /* Deixa avermelhado e mais escuro */
 }
 
-small {
-  color: var(--ion-color-medium);
-  font-size: 12px;
+/* Estilos do Footer */
+ion-footer {
+  ion-toolbar {
+    --background: transparent; /* Fundo transparente */
+    --border-color: transparent; /* Remove a borda */
+    .footer-text {
+      color: #7b7b7b; /* Cor cinza para o texto do rodapé */
+      text-align: center;
+      width: 100%;
+      font-size: 0.8rem;
+    }
+  }
 }

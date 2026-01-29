@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { IonicModule, NavController, ToastController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -80,6 +80,11 @@ import { add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, 
   ]
 })
 export class CaixaPage implements OnInit, OnDestroy {
+  financeService = inject(FinanceService);
+  private navCtrl = inject(NavController);
+  private toastController = inject(ToastController);
+  private alertController = inject(AlertController);
+
   transactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
   summary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
@@ -101,14 +106,10 @@ export class CaixaPage implements OnInit, OnDestroy {
   clientAddress: string = '';
   categorias = CATEGORIAS_SOLARIS;
   isEditMode: boolean = false;
+  editingTransactionId: string | null = null;
 
 
-  constructor(
-    public financeService: FinanceService, // Made public to be accessible in the template
-    private navCtrl: NavController,
-    private toastController: ToastController,
-    private alertController: AlertController
-  ) {
+  constructor() {
     addIcons({ add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, close, checkmark });
   }
 
@@ -145,8 +146,27 @@ export class CaixaPage implements OnInit, OnDestroy {
     this.showAddTransactionModal = true;
   }
 
+  openEditTransactionModal(transaction: Transaction) {
+    this.isEditMode = true;
+    this.editingTransactionId = transaction.id!;
+    
+    this.type = transaction.type;
+    this.title = transaction.title;
+    this.amount = transaction.amount;
+    this.category = transaction.category;
+    this.paymentMethod = transaction.paymentMethod;
+    this.date = transaction.date;
+    this.description = transaction.description ?? '';
+    this.clientName = transaction.clientName || '';
+    this.clientPhone = transaction.clientPhone || '';
+    this.clientAddress = transaction.clientAddress || '';
+
+    this.showAddTransactionModal = true;
+  }
+
   cancelAddTransaction() {
     this.showAddTransactionModal = false;
+    this.editingTransactionId = null;
   }
 
   private resetTransactionForm() {
@@ -160,6 +180,7 @@ export class CaixaPage implements OnInit, OnDestroy {
     this.clientName = '';
     this.clientPhone = '';
     this.clientAddress = '';
+    this.editingTransactionId = null;
   }
 
   get availableCategories(): string[] {
@@ -181,23 +202,20 @@ export class CaixaPage implements OnInit, OnDestroy {
       await this.showToast('Por favor, preencha o título', 'warning');
       return;
     }
-
     if (!this.amount || this.amount <= 0) {
       await this.showToast('Por favor, informe um valor válido maior que zero', 'warning');
       return;
     }
-
     if (!this.category || this.category.trim() === '') {
       await this.showToast('Por favor, selecione uma categoria', 'warning');
       return;
     }
-
     if (!this.date) {
       await this.showToast('Por favor, selecione uma data', 'warning');
       return;
     }
 
-    const transactionData = {
+    const transactionData: Partial<Transaction> = {
       type: this.type,
       title: this.title.trim(),
       amount: this.amount,
@@ -211,11 +229,17 @@ export class CaixaPage implements OnInit, OnDestroy {
     };
 
     try {
-      await this.financeService.addTransaction(transactionData);
-      await this.showToast('Transação adicionada com sucesso!', 'success');
+      if (this.isEditMode && this.editingTransactionId) {
+        await this.financeService.updateTransaction(this.editingTransactionId, transactionData);
+        await this.showToast('Transação atualizada com sucesso!', 'success');
+      } else {
+        await this.financeService.addTransaction(transactionData as Transaction);
+        await this.showToast('Transação adicionada com sucesso!', 'success');
+      }
       this.showAddTransactionModal = false;
     } catch (error) {
-      await this.showToast('Erro ao salvar transação', 'danger');
+      const action = this.isEditMode ? 'atualizar' : 'salvar';
+      await this.showToast(`Erro ao ${action} transação`, 'danger');
     }
   }
   

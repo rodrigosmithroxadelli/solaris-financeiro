@@ -1,0 +1,66 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Registrar Pagamento</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cancel()">Fechar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form [formGroup]="paymentForm" (ngSubmit)="confirm()">
+    <ion-list>
+      <ion-item>
+        <ion-select label="Método de Pagamento" label-placement="stacked" formControlName="method">
+          <ion-select-option value="CASH">Dinheiro</ion-select-option>
+          <ion-select-option value="PIX">PIX</ion-select-option>
+          <ion-select-option value="CREDIT_CARD">Cartão de Crédito</ion-select-option>
+          <ion-select-option value="DEBIT_CARD">Cartão de Débito</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-input
+          label="Valor (R$)"
+          label-placement="stacked"
+          type="number"
+          formControlName="grossValue"
+          [min]="0.01"
+          placeholder="0.00"
+        ></ion-input>
+      </ion-item>
+
+      <ng-container *ngIf="isCardPayment()">
+        <ion-item>
+          <ion-input
+            label="Nº Parcelas"
+            label-placement="stacked"
+            type="number"
+            formControlName="installments"
+            [min]="1"
+          ></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-input
+            label="Taxa Maquininha (%)"
+            label-placement="stacked"
+            type="number"
+            formControlName="taxRate"
+            [min]="0"
+          ></ion-input>
+        </ion-item>
+      </ng-container>
+    </ion-list>
+
+    <div class="ion-padding-vertical ion-text-center">
+      <ion-label>
+        <p>Valor Pendente: {{ pendingAmount | currency:'BRL' }}</p>
+      </ion-label>
+    </div>
+
+    <ion-button expand="block" type="submit" [disabled]="paymentForm.invalid">
+      Confirmar Pagamento
+    </ion-button>
+  </form>
+</ion-content>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -28,6 +28,7 @@ import { Subscription } from 'rxjs';
 import { addIcons } from 'ionicons';
 import { download, calendar, barChart, pieChart } from 'ionicons/icons';
 
+
 @Component({
   selector: 'app-relatorios',
   templateUrl: 'relatorios.page.html',
@@ -53,9 +54,15 @@ import { download, calendar, barChart, pieChart } from 'ionicons/icons';
     IonDatetimeButton,
     IonModal,
     IonDatetime
-  ]
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RelatoriosPage implements OnInit, OnDestroy {
+  financeService = inject(FinanceService);
+  private exportService = inject(ExportService);
+  private toastController = inject(ToastController);
+  private cdr = inject(ChangeDetectorRef);
+
   periodType: 'dia' | 'semana' | 'mes' = 'mes';
   selectedDate: string = new Date().toISOString();
   summary: PeriodSummary | null = null;
@@ -67,11 +74,14 @@ export class RelatoriosPage implements OnInit, OnDestroy {
   paymentMethodData: { [key: string]: number } = {};
   private transactionsSubscription?: Subscription;
 
-  constructor(
-    public financeService: FinanceService,
-    private exportService: ExportService,
-    private toastController: ToastController
-  ) {
+  // New properties for memoized getters
+  categoryEntries: Array<{ category: string; amount: number }> = [];
+  paymentMethodEntries: Array<{ method: string; amount: number }> = [];
+  averageEntradas: number = 0;
+  averageSaidas: number = 0;
+  maxAmountForPercentage: number = 0;
+
+  constructor() {
     addIcons({ download, calendar, barChart, pieChart });
   }
 
@@ -79,6 +89,7 @@ export class RelatoriosPage implements OnInit, OnDestroy {
     this.transactionsSubscription = this.financeService.transactions$.subscribe(data => {
       this.allTransactions = data;
       this.processData();
+      this.cdr.detectChanges(); // Manually trigger change detection
     });
   }
 
@@ -132,6 +143,34 @@ export class RelatoriosPage implements OnInit, OnDestroy {
 
     this.categoryData = this.aggregateBy(this.filteredTransactions, 'category');
     this.paymentMethodData = this.aggregateBy(this.filteredTransactions, 'paymentMethod');
+
+    // Memoized computations
+    this.categoryEntries = Object.entries(this.categoryData)
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    const methodLabels: { [key: string]: string } = {
+      pix: 'PIX',
+      dinheiro: 'Dinheiro',
+      cartao_credito: 'Cartão de Crédito',
+      cartao_debito: 'Cartão de Débito'
+    };
+    this.paymentMethodEntries = Object.entries(this.paymentMethodData)
+      .map(([method, amount]) => ({
+        method: methodLabels[method] || method,
+        amount
+      }))
+      .sort((a, b) => b.amount - a.amount);
+    
+    this.averageEntradas = this.getAverage(totalEntradas, 'entrada');
+    this.averageSaidas = this.getAverage(totalSaidas, 'saida');
+
+    this.maxAmountForPercentage = Math.max(
+      this.summary.totalEntradas,
+      this.summary.totalSaidas,
+      ...Object.values(this.categoryData),
+      ...Object.values(this.paymentMethodData)
+    );
   }
 
   private aggregateBy(transactions: Transaction[], key: keyof Transaction): { [key: string]: number } {
@@ -146,11 +185,13 @@ export class RelatoriosPage implements OnInit, OnDestroy {
 
   onPeriodChange() {
     this.processData();
+    this.cdr.detectChanges(); // Manually trigger change detection
   }
 
   onDateChange(event: any) {
     this.selectedDate = event.detail.value;
     this.processData();
+    this.cdr.detectChanges(); // Manually trigger change detection
   }
 
   async exportPDF() {
@@ -180,28 +221,6 @@ export class RelatoriosPage implements OnInit, OnDestroy {
       await this.showToast('Erro ao exportar Excel', 'danger');
     }
   }
-
-  getCategoryEntries(): Array<{ category: string; amount: number }> {
-    return Object.entries(this.categoryData)
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount);
-  }
-
-  getPaymentMethodEntries(): Array<{ method: string; amount: number }> {
-    const methodLabels: { [key: string]: string } = {
-      pix: 'PIX',
-      dinheiro: 'Dinheiro',
-      cartao_credito: 'Cartão de Crédito',
-      cartao_debito: 'Cartão de Débito'
-    };
-
-    return Object.entries(this.paymentMethodData)
-      .map(([method, amount]) => ({
-        method: methodLabels[method] || method,
-        amount
-      }))
-      .sort((a, b) => b.amount - a.amount);
-  }
   
   getAverage(total: number, type: 'entrada' | 'saida'): number {
     const count = this.filteredTransactions.filter(t => t.type === type).length;
@@ -209,14 +228,8 @@ export class RelatoriosPage implements OnInit, OnDestroy {
   }
   
   getPercentage(amount: number): number {
-    if (!this.summary) return 0;
-    const maxAmount = Math.max(
-      this.summary.totalEntradas,
-      this.summary.totalSaidas,
-      ...Object.values(this.categoryData),
-      ...Object.values(this.paymentMethodData)
-    );
-    return maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+    if (!this.summary || this.maxAmountForPercentage === 0) return 0;
+    return (amount / this.maxAmountForPercentage) * 100;
   }
   
   getComparisonPercentage(value: number): number {

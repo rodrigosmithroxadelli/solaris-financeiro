@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/clients"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ client?.name }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  
+  <ion-card *ngIf="client" class="info-card">
+    <ion-card-content>
+      <h1>{{ client.name }}</h1>
+      <p>WhatsApp: {{ client.whatsapp }}</p>
+      <p *ngIf="client.email">Email: {{ client.email }}</p>
+
+      <div *ngIf="client.vehicles && client.vehicles.length > 0">
+        <h3>Veículo Principal:</h3>
+        <p>Modelo: {{ client.vehicles[0].brand }} - {{ client.vehicles[0].model }} ({{ client.vehicles[0].year }})</p>
+        <p>Placa: {{ client.vehicles[0].plate }}</p>
+        <p>Cor: {{ client.vehicles[0].color }}</p>
+      </div>
+      <div *ngIf="!client.vehicles || client.vehicles.length === 0">
+        <p>Nenhum veículo cadastrado para este cliente.</p>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+  <h3>Histórico de Serviços</h3>
+
+  <ion-list>
+    <ion-item *ngFor="let t of history">
+      <ion-label>
+        <h2>{{ t.title }}</h2>
+        <p>{{ t.date | date:'dd/MM/yyyy' }}</p>
+      </ion-label>
+      <ion-note slot="end" color="dark">{{ t.amount | currency:'BRL' }}</ion-note>
+      
+      <ion-button slot="end" fill="clear" (click)="generateReceipt(t)">
+        <ion-icon name="document-text-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="history.length === 0" class="ion-text-center ion-padding-top">
+    <p class="text-medium">Nenhum serviço encontrado para este cliente.</p>
+    <p class="text-small">Dica: Ao lançar no Caixa, coloque o nome do cliente na descrição.</p>
+  </div>
+
+</ion-content>

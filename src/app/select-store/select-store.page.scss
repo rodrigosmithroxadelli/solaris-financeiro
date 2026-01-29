@@ -1,0 +1,86 @@
+ion-content {
+  --background: #000000;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.logo-container {
+  margin-bottom: 40px;
+  /* Efeito de sombra prateada sutil atrás do logo */
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+}
+
+.main-logo {
+  width: 200px; /* Ajuste conforme necessário */
+  border-radius: 4px;
+}
+
+.welcome-text {
+  color: #888;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 30px;
+}
+
+.store-buttons {
+  width: 100%;
+  max-width: 400px;
+}
+
+.store-card {
+  --background: #1a1a1a; /* Fundo cinza chumbo */
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  border: 1px solid #333; /* Borda sutil */
+
+  /* Efeito metálico ao clicar */
+  &:active {
+    --background: #2a2a2a;
+    transform: scale(0.98);
+  }
+
+  /* Detalhe lateral colorido para diferenciar */
+  &.matriz { border-left: 4px solid var(--ion-color-success); } /* Verde ou outra cor */
+  &.filial { border-left: 4px solid var(--ion-color-tertiary); } /* Azul */
+}
+
+.card-content-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+}
+
+.icon-box {
+  font-size: 24px;
+  color: #e0e0e0; /* Prata */
+  margin-right: 15px;
+  background: rgba(255,255,255,0.05);
+  padding: 10px;
+  border-radius: 50%;
+}
+
+.text-box {
+  flex: 1;
+  text-align: left;
+
+  h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  p {
+    margin: 4px 0 0;
+    color: #888;
+    font-size: 0.9rem;
+  }
+}

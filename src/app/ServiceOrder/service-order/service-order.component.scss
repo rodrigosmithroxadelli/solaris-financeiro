@@ -1,0 +1,30 @@
+ion-card-header.ion-justify-content-between {
+  display: flex;
+  justify-content: space-between;
+}
+
+.total-row {
+  font-size: 1.2em;
+  border-top: 1px solid var(--ion-color-medium-tint);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.balance-due-row {
+  font-size: 1.3em;
+  color: var(--ion-color-primary);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--ion-color-light);
+  margin: 16px 0;
+}
+
+ion-item h3 {
+  font-weight: bold;
+}
+
+ion-item p {
+  color: var(--ion-color-medium-shade);
+}

@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to get the current user's UID
+    function getUid() {
+      return request.auth.uid;
+    }
+
+    // Helper function to get the current user's tenantId from their profile document
+    // This assumes the user's profile document in the 'users' collection contains a 'tenantId' field
+    function getTenantId() {
+      // Ensure the user document exists and has a tenantId field
+      return get(/databases/$(database)/documents/users/$(getUid())).data.tenantId;
+    }
+
+    // Helper function to check if the user is an admin for their tenant
+    // Assumes the user's profile document in the 'users' collection contains a 'role' field
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(getUid())).data.role == 'admin';
+    }
+
+    // --- Collection-specific rules ---
+
+    // Users collection: A user can only read and write their own document
+    // Admins can read/write any user document within their tenant (for user management)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (getUid() == userId || (isAdmin() && resource.data.tenantId == getTenantId()));
+      allow create: if isAuthenticated() && getUid() == userId; // A user can create their own profile upon first login/registration
+      allow update, delete: if isAuthenticated() && (getUid() == userId || (isAdmin() && resource.data.tenantId == getTenantId()));
+    }
+
+    // This is the correct way to handle multi-tenant subcollections.
+    // It allows a user to perform actions within their own tenant's subcollections.
+    match /tenants/{tenantId}/{collection}/{document=**} {
+      // Allow read and write access if the user belongs to the tenant.
+      allow read, write: if isAuthenticated() && getTenantId() == tenantId;
+    }
+  }
+}

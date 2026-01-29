@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FinanceService, CashFlowSummary } from '../services/finance.service';
 import { Transaction } from '../models/transaction.model';
 
@@ -17,17 +17,14 @@ import { IonicModule } from '@ionic/angular'; // Provides Ion components and Mod
   ]
 })
 export class HomePage implements OnInit {
+  financeService = inject(FinanceService);
+
   transactions: Transaction[] = [];
   balance = { entradas: 0, saidas: 0, total: 0 };
 
   todaySummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
   weekSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
   monthSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
-
-  constructor(
-    public financeService: FinanceService // Make public
-  ) {
-  }
 
   ngOnInit() {
     // Aqui o app se conecta ao fluxo de dados do Google

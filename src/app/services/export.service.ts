@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { FinanceService } from './finance.service';
 import { Transaction } from '../models/transaction.model';
 import { PeriodSummary } from './finance.service';
@@ -7,7 +7,8 @@ import { PeriodSummary } from './finance.service';
   providedIn: 'root',
 })
 export class ExportService {
-  constructor(private financeService: FinanceService) {}
+  private financeService = inject(FinanceService);
+
 
   async exportToPDF(summary: PeriodSummary, transactions: Transaction[], period: string): Promise<void> {
     // Implementação básica - em produção, usar jsPDF

@@ -1,1 +1,58 @@
+/* Ensure all tab buttons are visible */
+ion-tab-bar {
+  --border-width: 1px 0 0 0;
+  --border-style: solid;
+  --border-color: var(--ion-color-step-200);
+  
+  /* Make tab bar scrollable for many tabs */
+  display: flex !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  
+  /* Ensure proper sizing */
+  width: 100%;
+  gap: 0;
+  
+  /* Ensure tab buttons don't shrink or hide */
+  ion-tab-button {
+    flex-shrink: 0 !important;
+    min-width: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    padding: 0 8px !important;
+    
+    /* Ensure icon and label are visible */
+    ion-icon {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    ion-label {
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      font-size: 12px !important;
+    }
+  }
+  
+  /* Hide scrollbar for mobile */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
+/* Explicitly ensure caixa tab button is visible */
+ion-tab-button[tab="caixa"] {
+  display: flex !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  flex-shrink: 0 !important;
+}

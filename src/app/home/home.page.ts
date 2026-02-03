@@ -1,5 +1,5 @@
 
-import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, DestroyRef, ViewChild, ElementRef, HostListener } from '@angular/core';
 
 import { FinanceService, CashFlowSummary } from '../services/finance.service';
 import { FinancialService, FinancialRecord } from '../services/financial.service';
@@ -12,6 +12,8 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 
 import { RouterModule, Router } from '@angular/router';
+import { Chart, ChartDataset, ChartOptions, registerables, Plugin } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 import { addIcons } from 'ionicons';
 
@@ -93,6 +95,60 @@ import { StorageService } from '../services/storage.service';
 
 import { Client } from '../models/client.model';
 
+Chart.register(...registerables, ChartDataLabels);
+
+const realizedOverlayLinePlugin: Plugin<'bar'> = {
+  id: 'realizedOverlayLine',
+  afterDatasetsDraw(chart) {
+    const datasetIndex = chart.data.datasets.findIndex(dataset => dataset.label === 'Realizado');
+    if (datasetIndex < 0) {
+      return;
+    }
+    const meta = chart.getDatasetMeta(datasetIndex);
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.strokeStyle = '#1f58d6';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    let hasStarted = false;
+    meta.data.forEach((element, index) => {
+      const value = chart.data.datasets[datasetIndex].data[index] as number | undefined;
+      if (!value && value !== 0) {
+        return;
+      }
+      const x = element.x;
+      const y = element.y;
+      if (!hasStarted) {
+        ctx.moveTo(x, y);
+        hasStarted = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    if (hasStarted) {
+      ctx.stroke();
+    }
+    meta.data.forEach((element, index) => {
+      const value = chart.data.datasets[datasetIndex].data[index] as number | undefined;
+      if (!value && value !== 0) {
+        return;
+      }
+      ctx.beginPath();
+      ctx.fillStyle = '#1f58d6';
+      ctx.arc(element.x, element.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+};
+
+interface MonthlyChartData {
+  labels: string[];
+  realized: number[];
+  remaining: number[];
+  marker: Array<[number, number]>;
+}
+
 
 
 @Component({
@@ -118,8 +174,8 @@ import { Client } from '../models/client.model';
 
 })
 
-export class HomePage implements OnInit {
-
+export class HomePage implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('salesChart') private salesChartRef?: ElementRef<HTMLCanvasElement>;
   financeService = inject(FinanceService);
   private financialService = inject(FinancialService);
 
@@ -134,6 +190,11 @@ export class HomePage implements OnInit {
 
   private destroyRef = inject(DestroyRef);
   private hasLoadedClients = false;
+  private salesChart?: Chart<'bar'>;
+  private pendingChartData?: MonthlyChartData;
+  private isMobileView = false;
+  private readonly monthlyTarget = 10000;
+  private readonly monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 
 
@@ -209,7 +270,6 @@ export class HomePage implements OnInit {
 
 
 
-  chartLines = ['R$ 12.000,00', 'R$ 10.000,00', 'R$ 8.000,00', 'R$ 6.000,00', 'R$ 4.000,00', 'R$ 2.000,00', 'R$ 0,00'];
 
 
 
@@ -366,6 +426,7 @@ export class HomePage implements OnInit {
         this.transactions = data;
         this.calculateBalance();
         this.applyDateFilters(data);
+        this.updateSalesChart();
       });
 
 
@@ -386,6 +447,15 @@ export class HomePage implements OnInit {
         this.updatePeriodoResumo();
       });
 
+  }
+
+  ngAfterViewInit() {
+    this.updateResponsiveFlag();
+    this.initSalesChart();
+  }
+
+  ngOnDestroy() {
+    this.salesChart?.destroy();
   }
 
 
@@ -632,6 +702,7 @@ export class HomePage implements OnInit {
 
     this.applyDateFilters(this.transactions);
     this.updatePeriodoResumo();
+    this.updateSalesChart();
 
   }
 
@@ -643,6 +714,7 @@ export class HomePage implements OnInit {
 
     this.applyDateFilters(this.transactions);
     this.updatePeriodoResumo();
+    this.updateSalesChart();
 
   }
 
@@ -685,6 +757,180 @@ export class HomePage implements OnInit {
 
   goToNovaVenda() {
     this.router.navigate(['/tabs/caixa']);
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    const wasMobile = this.isMobileView;
+    this.updateResponsiveFlag();
+    if (this.salesChart && wasMobile !== this.isMobileView) {
+      this.salesChart.options = this.buildChartOptions();
+      this.salesChart.update();
+    }
+  }
+
+  private initSalesChart() {
+    const context = this.salesChartRef?.nativeElement.getContext('2d');
+    if (!context) {
+      return;
+    }
+    const chartData = this.pendingChartData ?? this.buildMonthlyChartData(this.transactions);
+    this.pendingChartData = undefined;
+    this.salesChart = new Chart(context, {
+      type: 'bar',
+      data: {
+        labels: chartData.labels,
+        datasets: this.buildChartDatasets(chartData)
+      },
+      options: this.buildChartOptions(),
+      plugins: [realizedOverlayLinePlugin]
+    });
+  }
+
+  private updateSalesChart() {
+    const chartData = this.buildMonthlyChartData(this.transactions);
+    if (!this.salesChart) {
+      this.pendingChartData = chartData;
+      return;
+    }
+    this.salesChart.data.labels = chartData.labels;
+    this.salesChart.data.datasets = this.buildChartDatasets(chartData);
+    this.salesChart.update();
+  }
+
+  private buildMonthlyChartData(transactions: Transaction[]): MonthlyChartData {
+    const year = this.selectedMonthDate.getFullYear();
+    const realized = Array.from({ length: 12 }, () => 0);
+    transactions
+      .filter(transaction => transaction.type === 'entrada')
+      .forEach(transaction => {
+        const date = new Date(transaction.date);
+        if (date.getFullYear() !== year) {
+          return;
+        }
+        realized[date.getMonth()] += transaction.amount;
+      });
+
+    const remaining = realized.map(value => Math.max(this.monthlyTarget - value, 0));
+    const maxRealized = Math.max(...realized, this.monthlyTarget, 1);
+    const markerHeight = Math.max(maxRealized * 0.02, 1);
+    const marker = realized.map(value => (
+      value > 0 ? [Math.max(value - markerHeight, 0), value] as [number, number] : [0, 0] as [number, number]
+    ));
+
+    return {
+      labels: [...this.monthLabels],
+      realized,
+      remaining,
+      marker
+    };
+  }
+
+  private buildChartDatasets(data: MonthlyChartData): ChartDataset<'bar'>[] {
+    const isMobile = this.isMobileView;
+    return [
+      {
+        label: 'Realizado',
+        data: data.realized,
+        backgroundColor: '#49c97d',
+        stack: 'goal',
+        borderRadius: 6,
+        datalabels: {
+          display: false
+        }
+      },
+      {
+        label: 'Meta restante',
+        data: data.remaining,
+        backgroundColor: '#ffb44d',
+        stack: 'goal',
+        borderRadius: 6,
+        datalabels: {
+          display: false
+        }
+      },
+      {
+        label: 'Indicador',
+        data: data.marker,
+        backgroundColor: '#4fa3ff',
+        stack: 'marker',
+        grouped: false,
+        barThickness: isMobile ? 4 : 6,
+        borderRadius: 4,
+        order: 3,
+        datalabels: {
+          display: true,
+          anchor: 'end',
+          align: 'end',
+          offset: 2,
+          font: {
+            size: isMobile ? 10 : 12,
+            weight: 600
+          },
+          formatter: (_value, context) => {
+            const amount = data.realized[context.dataIndex] ?? 0;
+            if (amount <= 0) {
+              return '';
+            }
+            return this.formatChartValue(amount);
+          }
+        }
+      }
+    ];
+  }
+
+  private buildChartOptions(): ChartOptions<'bar'> {
+    const isMobile = this.isMobileView;
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: true,
+          ticks: {
+            autoSkip: false,
+            maxRotation: isMobile ? 45 : 0,
+            minRotation: isMobile ? 45 : 0,
+            font: {
+              size: isMobile ? 10 : 12
+            }
+          }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: {
+            font: {
+              size: isMobile ? 10 : 12
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        datalabels: {
+          clamp: true
+        }
+      }
+    };
+  }
+
+  private updateResponsiveFlag() {
+    this.isMobileView = typeof window !== 'undefined' && window.innerWidth <= 768;
+  }
+
+  private formatChartValue(value: number): string {
+    if (!this.isMobileView) {
+      return this.financeService.formatCurrency(value);
+    }
+    if (value >= 1000) {
+      const compact = Number((value / 1000).toFixed(1));
+      const formatted = compact % 1 === 0 ? compact.toFixed(0) : compact.toFixed(1).replace('.', ',');
+      return `R$ ${formatted}k`;
+    }
+    return `R$ ${Math.round(value)}`;
   }
 
 }

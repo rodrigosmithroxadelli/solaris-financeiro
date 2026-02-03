@@ -83,7 +83,6 @@ export class CaixaPage implements OnInit, OnDestroy {
   filteredTransactions: Transaction[] = [];
   summary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
   searchTerm: string = '';
-  selectedDate: string = new Date().toISOString();
   onlyEntries = false;
   private transactionsSubscription?: Subscription;
 
@@ -303,16 +302,6 @@ export class CaixaPage implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  onDateChange(event: any) {
-    this.selectedDate = event.detail.value;
-    this.applyFilters();
-  }
-
-  clearDateFilter() {
-    this.selectedDate = '';
-    this.applyFilters();
-  }
-
   applyFilters() {
     let filtered = [...this.transactions];
 
@@ -325,18 +314,6 @@ export class CaixaPage implements OnInit, OnDestroy {
         (t.description && t.description.toLowerCase().includes(term)) ||
         (t.clientName && t.clientName.toLowerCase().includes(term))
       );
-    }
-
-    // Filtro por data
-    if (this.selectedDate) {
-      const selected = new Date(this.selectedDate);
-      const startOfDay = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 0, 0, 0);
-      const endOfDay = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate(), 23, 59, 59, 999);
-
-      filtered = filtered.filter(t => {
-        const transactionDate = new Date(t.date);
-        return transactionDate >= startOfDay && transactionDate <= endOfDay;
-      });
     }
 
     if (this.onlyEntries) {

@@ -679,40 +679,15 @@ ion-router-outlet + .ion-page.ion-page-hidden {
 
 
 
-.chart-placeholder {
-
+.sales-chart {
   margin-top: 12px;
-
-  display: grid;
-
-  gap: 10px;
-
+  height: 180px;
 }
 
-
-
-.chart-line {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 8px;
-
-  font-size: 11px;
-
-  color: #9aa1b1;
-
-}
-
-
-
-.chart-line .line {
-
-  flex: 1;
-
-  border-bottom: 1px dashed #d9dfea;
-
+@media (max-width: 768px) {
+  .sales-chart {
+    height: 160px;
+  }
 }
 
 

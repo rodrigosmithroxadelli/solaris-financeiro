@@ -18,27 +18,6 @@
     </div>
 
     <div class="form-group">
-      <div class="form-label">Data da movimentação</div>
-      <div class="datetime-button">
-        <ion-datetime
-          id="filter-datetime"
-          presentation="date"
-          [(ngModel)]="selectedDate"
-          (ionChange)="onDateChange($event)"
-        ></ion-datetime>
-      </div>
-      <ion-button
-        *ngIf="selectedDate"
-        fill="clear"
-        size="small"
-        class="inline-button"
-        (click)="clearDateFilter()"
-      >
-        Limpar filtro
-      </ion-button>
-    </div>
-
-    <div class="form-group">
       <div class="form-label">Buscar transações</div>
       <ion-searchbar
         class="form-searchbar"

@@ -93,6 +93,30 @@
   justify-content: flex-end;
 }
 
+.transaction-item ion-label {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .transaction-item::part(native) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .transaction-item ion-label {
+    flex: 1 1 100%;
+    width: 100%;
+    margin: 0;
+  }
+
+  .transaction-end {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .empty-state {
   text-align: center;
   padding: 32px 16px;

@@ -507,6 +507,20 @@ ion-router-outlet + .ion-page.ion-page-hidden {
 
 }
 
+.card-title-end {
+  margin-left: auto;
+  font-size: 12px;
+  color: #16a34a;
+}
+
+.positive-text {
+  color: #16a34a;
+}
+
+.negative-text {
+  color: #dc2626;
+}
+
 
 
 .card-title h3 {
@@ -700,6 +714,10 @@ ion-router-outlet + .ion-page.ion-page-hidden {
 
 }
 
+.finance-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 
 
 .finance-box {
@@ -724,6 +742,13 @@ ion-router-outlet + .ion-page.ion-page-hidden {
 
   font-size: 16px;
 
+}
+
+.finance-box-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 
@@ -754,6 +779,17 @@ ion-router-outlet + .ion-page.ion-page-hidden {
 
   color: #8a6a1d;
 
+}
+
+.finance-box.warning {
+  background: #fff4d1;
+  color: #8a5a00;
+}
+
+@media (max-width: 768px) {
+  .finance-grid--two {
+    grid-template-columns: 1fr;
+  }
 }
 
 

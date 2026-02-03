@@ -35,6 +35,26 @@ export class FinanceService {
     ) as Observable<Transaction[]>
   ).pipe(shareReplay({ bufferSize: 1, refCount: false }));
 
+  normalizePaymentStatus(status?: Transaction['paymentStatus']): Transaction['paymentStatus'] {
+    return status ?? 'PAGO';
+  }
+
+  filterPaidTransactions(transactions: Transaction[]): Transaction[] {
+    return transactions.filter(transaction => this.normalizePaymentStatus(transaction.paymentStatus) === 'PAGO');
+  }
+
+  filterPendingEntries(transactions: Transaction[]): Transaction[] {
+    return transactions.filter(transaction =>
+      transaction.type === 'entrada' && this.normalizePaymentStatus(transaction.paymentStatus) === 'PENDENTE'
+    );
+  }
+
+  getPaidTransactions(): Observable<Transaction[]> {
+    return this.transactions$.pipe(
+      map(transactions => this.filterPaidTransactions(transactions))
+    );
+  }
+
   // ADICIONAR (Salvar na Nuvem)
   async addTransaction(transaction: Transaction) {
     // Removemos o ID manual porque o Firebase cria um automático e seguro
@@ -96,19 +116,37 @@ export class FinanceService {
           endDate.setHours(23, 59, 59, 999);
         }
 
-         return transactions.filter(t => {
-           if (t.paymentStatus === 'PENDENTE') {
-             return false;
-           }
-           const transactionDate = new Date(t.date);
-           return transactionDate >= startDate && transactionDate <= endDate;
-         });
+        return transactions.filter(transaction => {
+          if (this.normalizePaymentStatus(transaction.paymentStatus) !== 'PAGO') {
+            return false;
+          }
+          const transactionDate = new Date(transaction.date);
+          return transactionDate >= startDate && transactionDate <= endDate;
+        });
       })
     );
   }
 
   getSummaryForPeriod(period: 'day' | 'week' | 'month', date: Date = new Date()): Observable<CashFlowSummary> {
     return this.getTransactionsForPeriod(period, date).pipe(
+      map(transactions => {
+        const entradas = transactions
+          .filter(t => t.type === 'entrada')
+          .reduce((acc, curr) => acc + curr.amount, 0);
+        const saidas = transactions
+          .filter(t => t.type === 'saida')
+          .reduce((acc, curr) => acc + curr.amount, 0);
+        return {
+          entradas,
+          saidas,
+          saldo: entradas - saidas
+        };
+      })
+    );
+  }
+
+  getBalanceTotal(): Observable<CashFlowSummary> {
+    return this.getPaidTransactions().pipe(
       map(transactions => {
         const entradas = transactions
           .filter(t => t.type === 'entrada')

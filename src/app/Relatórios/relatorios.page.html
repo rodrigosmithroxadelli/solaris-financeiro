@@ -98,6 +98,12 @@
             {{ financeService.formatCurrency(summary.saldo) }}
           </span>
         </div>
+        <div class="value-box full">
+          <span class="value-label">Saldo total em caixa</span>
+          <span class="value-value" [class.success]="totalCashBalance >= 0" [class.danger]="totalCashBalance < 0">
+            {{ financeService.formatCurrency(totalCashBalance) }}
+          </span>
+        </div>
         <div class="empty-state" *ngIf="filteredTransactions.length === 0">
           <p>Nenhuma movimentação encontrada no período.</p>
         </div>

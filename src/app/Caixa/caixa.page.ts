@@ -123,10 +123,11 @@ export class CaixaPage implements OnInit, OnDestroy {
   }
 
   calculateSummary() {
-    const entradas = this.transactions
+    const paidTransactions = this.financeService.filterPaidTransactions(this.transactions);
+    const entradas = paidTransactions
       .filter(t => t.type === 'entrada')
       .reduce((acc, curr) => acc + curr.amount, 0);
-    const saidas = this.transactions
+    const saidas = paidTransactions
       .filter(t => t.type === 'saida')
       .reduce((acc, curr) => acc + curr.amount, 0);
     this.summary = {
@@ -319,6 +320,7 @@ export class CaixaPage implements OnInit, OnDestroy {
     if (this.onlyEntries) {
       filtered = filtered.filter(t => t.type === 'entrada');
     }
+    // Listagem completa deve mostrar pendentes também; totals usam apenas pagos.
 
     // Ordenar por data (mais recente primeiro)
     filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

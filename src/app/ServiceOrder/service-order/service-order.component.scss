@@ -68,7 +68,7 @@
 }
 
 .transaction-item {
-  --background: #ffffff;
+  --background: #dddccc;
   --border-radius: 14px;
   margin: 0 0 10px;
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
@@ -80,9 +80,19 @@
   color: #111827;
 }
 
+.transaction-icon {
+  color: #10b981;
+}
+
 .transaction-subtitle {
   font-size: 12px;
   color: #6b7280;
+}
+
+.transaction-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .transaction-end {
@@ -91,6 +101,59 @@
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.payment-stack {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.payment-stack ion-toggle {
+  --handle-width: 18px;
+  --handle-height: 18px;
+  --track-width: 42px;
+  --track-height: 22px;
+}
+
+.toggle-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toggle-wrapper ion-toggle {
+  --handle-background: #9ca3af;
+  --handle-background-checked: #10b981;
+  --handle-border: 0;
+  --handle-border-checked: 0;
+  --handle-box-shadow: none;
+  --handle-box-shadow-checked: none;
+  --track-background: #e5e7eb;
+  --track-background-checked: rgba(16, 185, 129, 0.35);
+}
+
+.toggle-wrapper.is-paid {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.toggle-label {
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.actions-stack {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .transaction-item ion-label {
@@ -114,6 +177,17 @@
   .transaction-end {
     width: 100%;
     justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .payment-stack,
+  .actions-stack {
+    width: 100%;
+  }
+
+  .payment-stack {
+    justify-content: space-between;
   }
 }
 

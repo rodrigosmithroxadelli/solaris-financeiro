@@ -199,6 +199,7 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
 
 
   transactions: Transaction[] = [];
+  chartTransactions: Transaction[] = [];
 
   balance = { entradas: 0, saidas: 0, total: 0 };
 
@@ -261,6 +262,9 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
   entradasPeriodo = 0;
   saidasPeriodo = 0;
   faturasCartaoPeriodo = 0;
+  pendingPaymentsTotal = 0;
+  monthlyExpensesTotal = 0;
+  totalCashBalance = 0;
 
   private financialRecords: FinancialRecord[] = [];
 
@@ -420,12 +424,19 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
 
 
 
-    this.financeService.transactions$
+    this.financeService.getPaidTransactions()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(data => {
         this.transactions = data;
         this.calculateBalance();
         this.applyDateFilters(data);
+        this.updateSalesChart();
+      });
+
+    this.financeService.transactions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.chartTransactions = data;
         this.updateSalesChart();
       });
 
@@ -724,12 +735,18 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
       const recordDate = record.data.toDate();
       return recordDate >= start && recordDate <= end;
     });
+    const allPaidRecords = this.financialRecords.filter(record => record.statusPagamento !== 'PENDENTE');
 
     this.entradasPeriodo = this.sumByTipo(recordsInRange, 'entrada');
     this.saidasPeriodo = this.sumByTipo(recordsInRange, 'saida');
     this.faturasCartaoPeriodo = recordsInRange
       .filter(record => record.tipo === 'entrada' && record.metodoPagamento === 'credito')
       .reduce((acc, curr) => acc + curr.valor, 0);
+    this.pendingPaymentsTotal = recordsInRange
+      .filter(record => record.statusPagamento === 'PENDENTE' && record.tipo === 'entrada')
+      .reduce((acc, curr) => acc + curr.valor, 0);
+    this.monthlyExpensesTotal = this.sumByTipo(recordsInRange, 'saida');
+    this.totalCashBalance = this.sumByTipo(allPaidRecords, 'entrada') - this.sumByTipo(allPaidRecords, 'saida');
 
     this.balance = {
       entradas: this.entradasPeriodo,
@@ -774,7 +791,8 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
     if (!context) {
       return;
     }
-    const chartData = this.pendingChartData ?? this.buildMonthlyChartData(this.transactions);
+    const sourceTransactions = this.chartTransactions.length ? this.chartTransactions : this.transactions;
+    const chartData = this.pendingChartData ?? this.buildMonthlyChartData(sourceTransactions);
     this.pendingChartData = undefined;
     this.salesChart = new Chart(context, {
       type: 'bar',
@@ -788,7 +806,8 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private updateSalesChart() {
-    const chartData = this.buildMonthlyChartData(this.transactions);
+    const sourceTransactions = this.chartTransactions.length ? this.chartTransactions : this.transactions;
+    const chartData = this.buildMonthlyChartData(sourceTransactions);
     if (!this.salesChart) {
       this.pendingChartData = chartData;
       return;

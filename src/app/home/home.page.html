@@ -114,6 +114,61 @@
   <section class="dashboard-card">
 
     <div class="card-title">
+      <ion-icon name="bar-chart-outline"></ion-icon>
+      <div>
+        <h3>Resumo financeiro</h3>
+      </div>
+      <div class="card-title-end">
+        <strong [class.positive-text]="balance.total >= 0" [class.negative-text]="balance.total < 0">
+          {{ financeService.formatCurrency(balance.total) }} de saldo
+        </strong>
+      </div>
+    </div>
+
+    <div class="finance-grid finance-grid--two">
+      <div class="finance-box positive">
+        <h4>Entradas hoje</h4>
+        <p>Valor total de todas as entradas no financeiro</p>
+        <strong>{{ financeService.formatCurrency(todaySummary.entradas) }}</strong>
+      </div>
+      <div class="finance-box negative">
+        <h4>Saídas hoje</h4>
+        <p>Valor total de todos os gastos do financeiro</p>
+        <strong>{{ financeService.formatCurrency(todaySummary.saidas) }}</strong>
+      </div>
+      <div class="finance-box warning">
+        <h4>Pendente para pagamento</h4>
+        <p>Valor total das entradas pendentes</p>
+        <strong>{{ financeService.formatCurrency(pendingPaymentsTotal) }}</strong>
+      </div>
+      <div class="finance-box negative">
+        <h4>Saídas no mês</h4>
+        <p>Valor total das saídas deste mês</p>
+        <strong>{{ financeService.formatCurrency(monthlyExpensesTotal) }}</strong>
+      </div>
+      <div class="finance-box neutral" *ngIf="showCreditCardCard">
+        <div class="finance-box-row">
+          <div>
+            <h4>Faturas no cartão</h4>
+            <p>Valor total das faturas dos cartões de crédito</p>
+          </div>
+          <strong>{{ financeService.formatCurrency(faturasCartaoPeriodo) }}</strong>
+        </div>
+      </div>
+      <div class="finance-box neutral">
+        <h4>Saldo total em caixa</h4>
+        <p>Saldo total de entradas e saídas</p>
+        <strong>{{ financeService.formatCurrency(totalCashBalance) }}</strong>
+      </div>
+    </div>
+
+  </section>
+
+
+
+  <section class="dashboard-card">
+
+    <div class="card-title">
 
       <ion-icon name="cash-outline"></ion-icon>
 
@@ -192,55 +247,6 @@
 
     <div class="sales-chart">
       <canvas #salesChart></canvas>
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-
-      <ion-icon name="bar-chart-outline"></ion-icon>
-
-      <div>
-
-        <h3>Resumo financeiro</h3>
-        <p>{{ financeService.formatCurrency(balance.total) }} de saldo hoje</p>
-
-      </div>
-
-    </div>
-
-    <div class="finance-grid">
-
-      <div class="finance-box positive">
-
-        <h4>Entradas no mês</h4>
-
-        <p>Valor total de todas as entradas no financeiro</p>
-
-        <strong>{{ financeService.formatCurrency(entradasPeriodo) }}</strong>
-
-      </div>
-
-      <div class="finance-box negative">
-
-        <h4>Saídas no mês</h4>
-
-        <p>Valor total de todos os gastos do financeiro</p>
-
-        <strong>{{ financeService.formatCurrency(saidasPeriodo) }}</strong>
-
-      </div>
-
-      <div class="finance-box neutral" *ngIf="showCreditCardCard">
-        <h4>Faturas no cartão</h4>
-        <p>Valor total das faturas dos cartões de crédito</p>
-        <strong>{{ financeService.formatCurrency(faturasCartaoPeriodo) }}</strong>
-      </div>
-
     </div>
 
   </section>

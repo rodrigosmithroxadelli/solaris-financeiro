@@ -28,36 +28,42 @@
         <div class="transactions-section">
           <h3>OS aguardando ação ({{ allOrders.length }})</h3>
           <p>Atualize status de pagamento ou cancele</p>
-          <ion-list class="transactions-list" *ngIf="allOrders.length > 0; else emptyOrders">
-            <ion-item *ngFor="let order of allOrders" class="transaction-item">
-              <ion-icon name="cash-outline" slot="start"></ion-icon>
-              <ion-label>
-                <div class="transaction-title">{{ order.clientName || 'Sem cliente' }}</div>
-                <div class="transaction-subtitle">
-                  OS {{ getServiceStatusLabel(order) }} • {{ getPaymentMethodLabel(order) }}
+            <ion-list class="transactions-list" *ngIf="allOrders.length > 0; else emptyOrders">
+              <ion-item *ngFor="let order of allOrders" class="transaction-item">
+                <ion-icon name="cash-outline" slot="start" class="transaction-icon"></ion-icon>
+                <ion-label class="transaction-label">
+                  <div class="transaction-title">{{ order.clientName || 'Sem cliente' }}</div>
+                  <div class="transaction-subtitle">
+                    OS {{ getServiceStatusLabel(order) }} • {{ getPaymentMethodLabel(order) }}
+                  </div>
+                </ion-label>
+                <div slot="end" class="transaction-end">
+                  <div class="payment-stack">
+                    <ion-badge [color]="order.paymentStatus === 'PAGO' ? 'success' : 'warning'">
+                      {{ order.paymentStatus || 'PENDENTE' }}
+                    </ion-badge>
+                    <div class="toggle-wrapper" [class.is-paid]="order.paymentStatus === 'PAGO'">
+                      <ion-toggle
+                        aria-label="Status de pagamento"
+                        [checked]="order.paymentStatus === 'PAGO'"
+                        (ionChange)="togglePaymentStatus(order, $event)"
+                      ></ion-toggle>
+                      <span class="toggle-label">
+                        {{ order.paymentStatus === 'PAGO' ? 'Pago' : 'Pendente' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="actions-stack">
+                    <ion-button fill="clear" size="small" (click)="setServiceStatus(order, 'CONCLUIDA')">
+                      <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+                    </ion-button>
+                    <ion-button fill="clear" color="danger" size="small" (click)="confirmDeleteOrder(order)">
+                      <ion-icon name="trash" slot="icon-only"></ion-icon>
+                    </ion-button>
+                  </div>
                 </div>
-              </ion-label>
-              <div slot="end" class="transaction-end">
-                <ion-badge [color]="order.paymentStatus === 'PAGO' ? 'success' : 'warning'">
-                  {{ order.paymentStatus || 'PENDENTE' }}
-                </ion-badge>
-                <ion-button
-                  fill="clear"
-                  size="small"
-                  [color]="order.paymentStatus === 'PAGO' ? 'success' : 'medium'"
-                  (click)="togglePaymentStatus(order, { detail: { checked: order.paymentStatus !== 'PAGO' } })"
-                >
-                  {{ order.paymentStatus === 'PAGO' ? 'PAGO' : 'PENDENTE' }}
-                </ion-button>
-                <ion-button fill="clear" size="small" (click)="setServiceStatus(order, 'CONCLUIDA')">
-                  <ion-icon name="checkmark" slot="icon-only"></ion-icon>
-                </ion-button>
-                <ion-button fill="clear" color="danger" size="small" (click)="confirmDeleteOrder(order)">
-                  <ion-icon name="trash" slot="icon-only"></ion-icon>
-                </ion-button>
-              </div>
-            </ion-item>
-          </ion-list>
+              </ion-item>
+            </ion-list>
           <ng-template #emptyOrders>
             <div class="empty-state">
               <p>Nenhuma ordem aguardando ação</p>

@@ -131,15 +131,23 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
   }
 
   async togglePaymentStatus(order: ServiceOrder, event: any) {
-    const isChecked = event.detail?.checked;
-    const newStatus = isChecked ? 'PAGO' : 'PENDENTE';
+    const previousStatus = order.paymentStatus ?? 'PENDENTE';
+    const isChecked = event?.detail?.checked ?? previousStatus !== 'PAGO';
+    const newStatus: ServiceOrder['paymentStatus'] = isChecked ? 'PAGO' : 'PENDENTE';
+    if (previousStatus === newStatus) {
+      return;
+    }
     try {
       await this.orderService.updatePaymentStatus(order.id!, newStatus);
       if (order.linkedTransactionId) {
         await this.paymentService.updateTransactionPaymentStatus(order.linkedTransactionId, newStatus);
+      } else if (order.id) {
+        await this.paymentService.updateTransactionPaymentStatusByServiceOrderId(order.id, newStatus);
       }
+      this.updateLocalPaymentStatus(order.id!, newStatus);
       await this.showToast('Status de pagamento atualizado!', 'success');
     } catch (error) {
+      this.updateLocalPaymentStatus(order.id!, previousStatus);
       await this.showToast('Erro ao atualizar pagamento', 'danger');
     }
   }
@@ -194,6 +202,18 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
       position: 'top'
     });
     await toast.present();
+  }
+
+  private updateLocalPaymentStatus(orderId: string, status: ServiceOrder['paymentStatus']) {
+    const orderIndex = this.ordersSnapshot.findIndex(order => order.id === orderId);
+    if (orderIndex !== -1) {
+      this.ordersSnapshot[orderIndex] = { ...this.ordersSnapshot[orderIndex], paymentStatus: status };
+    }
+    const visibleOrder = this.allOrders.find(order => order.id === orderId);
+    if (visibleOrder) {
+      visibleOrder.paymentStatus = status;
+    }
+    this.applyOrderFilters();
   }
 
   getServiceStatusLabel(order: ServiceOrder): string {

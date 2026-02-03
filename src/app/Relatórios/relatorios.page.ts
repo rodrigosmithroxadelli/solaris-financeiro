@@ -24,6 +24,7 @@ import {
 import { FinanceService, PeriodSummary } from '../services/finance.service';
 import { ExportService } from '../services/export.service';
 import { Transaction } from '../models/transaction.model';
+import { FinancialService } from '../services/financial.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { addIcons } from 'ionicons';
 import { download, calendar, barChart, pieChart } from 'ionicons/icons';
@@ -59,6 +60,7 @@ import { download, calendar, barChart, pieChart } from 'ionicons/icons';
 })
 export class RelatoriosPage implements OnInit {
   financeService = inject(FinanceService);
+  private financialService = inject(FinancialService);
   private exportService = inject(ExportService);
   private toastController = inject(ToastController);
   private cdr = inject(ChangeDetectorRef);
@@ -80,6 +82,7 @@ export class RelatoriosPage implements OnInit {
   averageEntradas: number = 0;
   averageSaidas: number = 0;
   maxAmountForPercentage: number = 0;
+  totalCashBalance = 0;
 
   constructor() {
     addIcons({ download, calendar, barChart, pieChart });
@@ -92,6 +95,20 @@ export class RelatoriosPage implements OnInit {
         this.allTransactions = data;
         this.processData();
         this.cdr.detectChanges(); // Manually trigger change detection
+      });
+
+    this.financialService.getRegistros()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(records => {
+        const paidRecords = records.filter(record => record.statusPagamento !== 'PENDENTE');
+        const entradas = paidRecords
+          .filter(record => record.tipo === 'entrada')
+          .reduce((acc, curr) => acc + curr.valor, 0);
+        const saidas = paidRecords
+          .filter(record => record.tipo === 'saida')
+          .reduce((acc, curr) => acc + curr.valor, 0);
+        this.totalCashBalance = entradas - saidas;
+        this.cdr.detectChanges();
       });
   }
 
@@ -119,8 +136,11 @@ export class RelatoriosPage implements OnInit {
         break;
     }
 
-    this.filteredTransactions = this.allTransactions.filter(t => {
-      const transactionDate = new Date(t.date);
+    this.filteredTransactions = this.allTransactions.filter(transaction => {
+      if (this.financeService.normalizePaymentStatus(transaction.paymentStatus) !== 'PAGO') {
+        return false;
+      }
+      const transactionDate = new Date(transaction.date);
       return transactionDate >= startDate && transactionDate <= endDate;
     });
 

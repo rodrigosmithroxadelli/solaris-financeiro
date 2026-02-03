@@ -42,6 +42,7 @@
             ],
             "styles": ["src/global.scss", "src/theme/variables.scss"],
             "scripts": [],
+            "allowedCommonJsDependencies": ["canvg", "html2canvas", "rgbcolor", "raf", "core-js"],
             "browser": "src/main.ts"
           },
           "configurations": {

@@ -1,65 +1,691 @@
-import { Component, OnInit, inject } from '@angular/core';
+
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+
 import { FinanceService, CashFlowSummary } from '../services/finance.service';
+import { FinancialService, FinancialRecord } from '../services/financial.service';
+
 import { Transaction } from '../models/transaction.model';
 
-// Import necessary modules for standalone component and its template
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular'; // Provides Ion components and ModalController
+import { FormsModule } from '@angular/forms';
+
+import { IonicModule } from '@ionic/angular';
+
+import { RouterModule, Router } from '@angular/router';
+
+import { addIcons } from 'ionicons';
+
+import {
+
+  searchOutline,
+
+  notificationsOutline,
+
+  menuOutline,
+
+  homeOutline,
+
+  constructOutline,
+
+  walletOutline,
+
+  peopleOutline,
+
+  cubeOutline,
+
+  barChartOutline,
+
+  personCircleOutline,
+
+  eyeOutline,
+
+  cashOutline,
+
+  calendarOutline,
+
+  documentTextOutline,
+
+  checkboxOutline,
+
+  cardOutline,
+
+  arrowUpCircleOutline,
+
+  arrowDownCircleOutline,
+
+  gridOutline,
+
+  chatbubbleEllipsesOutline,
+
+  briefcaseOutline,
+
+  businessOutline,
+
+  ribbonOutline,
+
+  helpCircleOutline,
+
+  chevronBackOutline,
+
+  chevronForwardOutline,
+
+  logoInstagram,
+
+  logoFacebook,
+
+  logoYoutube,
+
+  logoWhatsapp
+
+} from 'ionicons/icons';
+
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { shareReplay } from 'rxjs';
+
+import { AuthService } from '../services/auth.service';
+
+import { CompanyProfileService } from '../services/company-profile.service';
+import { CompanyProfile } from '../models/company-profile.model';
+
+import { ClientService } from '../services/client.service';
+
+import { StorageService } from '../services/storage.service';
+
+import { Client } from '../models/client.model';
+
+
 
 @Component({
+
   selector: 'app-home',
+
   templateUrl: 'home.page.html',
+
   styleUrls: ['home.page.scss'],
-  standalone: true, // Mark as standalone
+
+  standalone: true,
+
   imports: [
+
     CommonModule,
-    IonicModule // Import IonicModule
+    FormsModule,
+
+    IonicModule,
+
+    RouterModule
+
   ]
+
 })
+
 export class HomePage implements OnInit {
+
   financeService = inject(FinanceService);
+  private financialService = inject(FinancialService);
+
+  private authService = inject(AuthService);
+
+  private companyProfileService = inject(CompanyProfileService);
+
+  private clientService = inject(ClientService);
+
+  private storageService = inject(StorageService);
+  private router = inject(Router);
+
+  private destroyRef = inject(DestroyRef);
+  private hasLoadedClients = false;
+
+
 
   transactions: Transaction[] = [];
+
   balance = { entradas: 0, saidas: 0, total: 0 };
 
   todaySummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
+
   weekSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
+
   monthSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
 
-  ngOnInit() {
-    // Aqui o app se conecta ao fluxo de dados do Google
-    this.financeService.transactions$.subscribe(data => {
-      this.transactions = data;
-      this.calculateBalance();
+
+
+  currentUserName = 'Cliente';
+
+  greetingLabel = 'bom dia';
+
+  todayLabel = '';
+
+  calendarLabel = '';
+
+  selectedMonthDate = new Date();
+
+  selectedMonthLabel = '';
+
+  isCurrentMonthSelected = true;
+
+  viewMode: 'MENSAL' | 'DIARIA' = 'MENSAL';
+
+  selectedDayDate = new Date();
+
+  selectedDayLabel = '';
+
+  calendarDate = new Date().toISOString();
+
+  todayDate = new Date().getDate();
+
+
+
+  salesBreakdown = {
+
+    debito: 0,
+
+    credito: 0,
+
+    pix: 0,
+
+    dinheiro: 0,
+
+    boleto: 0,
+
+    transferencias: 0
+
+  };
+
+  creditCardTotal = 0;
+
+  showCreditCardCard = false;
+
+  monthlyCreditCardTotal = 0;
+
+  entradasPeriodo = 0;
+  saidasPeriodo = 0;
+  faturasCartaoPeriodo = 0;
+
+  private financialRecords: FinancialRecord[] = [];
+
+  entradasHoje = 0;
+  saidasHoje = 0;
+  faturasCartaoHoje = 0;
+
+
+
+  chartLines = ['R$ 12.000,00', 'R$ 10.000,00', 'R$ 8.000,00', 'R$ 6.000,00', 'R$ 4.000,00', 'R$ 2.000,00', 'R$ 0,00'];
+
+
+
+  budgetsPending = 0;
+
+  budgetsApproved = 0;
+
+  occupiedSlots = 0;
+
+  totalSlots = 10;
+
+  completedSlots = 0;
+
+  postSalesPending = 0;
+
+  postSalesCompleted = 0;
+
+  employeesCount = 0;
+
+  companyName = 'Solaris';
+
+  companySinceLabel = '27/01/2026';
+
+  subscriptionLabel = 'Teste grátis';
+
+  clientsCount = 0;
+
+  topClients: Client[] = [];
+
+
+
+  constructor() {
+
+    addIcons({
+
+      searchOutline,
+
+      notificationsOutline,
+
+      menuOutline,
+
+      homeOutline,
+
+      constructOutline,
+
+      walletOutline,
+
+      peopleOutline,
+
+      cubeOutline,
+
+      barChartOutline,
+
+      personCircleOutline,
+
+      eyeOutline,
+
+      cashOutline,
+
+      calendarOutline,
+
+      documentTextOutline,
+
+      checkboxOutline,
+
+      cardOutline,
+
+      arrowUpCircleOutline,
+
+      arrowDownCircleOutline,
+
+      gridOutline,
+
+      chatbubbleEllipsesOutline,
+
+      briefcaseOutline,
+
+      businessOutline,
+
+      ribbonOutline,
+
+      helpCircleOutline,
+
+      chevronBackOutline,
+
+      chevronForwardOutline,
+
+      logoInstagram,
+
+      logoFacebook,
+
+      logoYoutube,
+
+      logoWhatsapp
+
     });
 
+  }
+
+
+
+  ngOnInit() {
+
+    this.setDateLabels();
+
+    this.updateSelectedMonthLabel();
+    this.updateSelectedDayLabel();
+
+    this.employeesCount = this.storageService.getUsers().length;
+
+
+
+    this.authService.currentUser$
+
+      .pipe(takeUntilDestroyed(this.destroyRef))
+
+      .subscribe(user => {
+
+        this.currentUserName = user?.displayName || user?.email?.split('@')[0] || 'Cliente';
+
+      });
+
+
+
+    const companyProfile$ = this.companyProfileService.getCompanyProfile()
+      .pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    companyProfile$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(profile => {
+        const companyProfile = profile as CompanyProfile | null;
+        if (companyProfile?.name) {
+          this.companyName = companyProfile.name;
+        }
+      });
+
+
+
+    if (!this.hasLoadedClients) {
+      this.hasLoadedClients = true;
+      this.clientService.getClients()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(clients => {
+          this.clientsCount = clients.length;
+          this.topClients = clients.slice(0, 5);
+        });
+    }
+
+
+
+    this.financeService.transactions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.transactions = data;
+        this.calculateBalance();
+        this.applyDateFilters(data);
+      });
+
+
+
     const today = new Date();
-    this.financeService.getSummaryForPeriod('day', today).subscribe(summary => {
-      this.todaySummary = summary;
+
+    this.financeService.getSummaryForPeriod('day', today)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(summary => {
+        this.todaySummary = summary;
+        this.calculateBalance();
+      });
+
+    this.financialService.getRegistros()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(records => {
+        this.financialRecords = records;
+        this.updatePeriodoResumo();
+      });
+
+  }
+
+
+
+  calculateBalance() {
+    const entradas = this.todaySummary.entradas;
+    const saidas = this.todaySummary.saidas;
+
+
+
+    this.balance = {
+
+      entradas,
+
+      saidas,
+
+      total: entradas - saidas
+
+    };
+
+  }
+
+
+
+  private setDateLabels() {
+
+    const now = new Date();
+
+    const hour = now.getHours();
+
+    if (hour >= 5 && hour < 12) {
+
+      this.greetingLabel = 'bom dia';
+
+    } else if (hour >= 12 && hour < 18) {
+
+      this.greetingLabel = 'boa tarde';
+
+    } else {
+
+      this.greetingLabel = 'boa noite';
+
+    }
+
+
+
+    const dayLabel = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+
+    const weekdayLabel = this.capitalize(now.toLocaleDateString('pt-BR', { weekday: 'long' }));
+
+    this.todayLabel = `${dayLabel}, ${weekdayLabel}`;
+
+
+
+    const monthLabel = this.capitalize(now.toLocaleDateString('pt-BR', { month: 'long' }));
+
+    this.calendarLabel = `${monthLabel} / ${now.getFullYear()}`;
+
+    this.todayDate = now.getDate();
+
+  }
+
+
+
+  private capitalize(text: string): string {
+
+    if (!text) {
+
+      return text;
+
+    }
+
+    return text.charAt(0).toUpperCase() + text.slice(1);
+
+  }
+
+
+
+  private updateSalesBreakdown(transactions: Transaction[]) {
+
+    const breakdown = {
+
+      debito: 0,
+
+      credito: 0,
+
+      pix: 0,
+
+      dinheiro: 0,
+
+      boleto: 0,
+
+      transferencias: 0
+
+    };
+
+
+
+    transactions
+      .filter(t => t.type === 'entrada')
+
+      .forEach(t => {
+
+        switch (t.paymentMethod) {
+
+          case 'cartao_debito':
+
+            breakdown.debito += t.amount;
+
+            break;
+
+          case 'cartao_credito':
+
+            breakdown.credito += t.amount;
+
+            break;
+
+          case 'pix':
+
+            breakdown.pix += t.amount;
+
+            break;
+
+          case 'dinheiro':
+
+            breakdown.dinheiro += t.amount;
+
+            break;
+
+          case 'boleto':
+
+            breakdown.boleto += t.amount;
+
+            break;
+
+          case 'transferencia':
+
+            breakdown.transferencias += t.amount;
+
+            break;
+
+          default:
+
+            break;
+
+        }
+
+      });
+
+
+
+    this.salesBreakdown = breakdown;
+
+    this.creditCardTotal = breakdown.credito;
+
+    this.showCreditCardCard = this.creditCardTotal > 0;
+
+  }
+
+  private applyDateFilters(transactions: Transaction[]) {
+    const selectedTransactions = this.filterTransactionsByViewMode(transactions);
+    this.monthSummary = this.calculateSummary(selectedTransactions);
+    this.updateSalesBreakdown(selectedTransactions);
+
+    const creditCardTotal = selectedTransactions
+      .filter(t => t.type === 'entrada' && t.paymentMethod === 'cartao_credito')
+      .reduce((acc, curr) => acc + curr.amount, 0);
+
+    this.monthlyCreditCardTotal = creditCardTotal;
+    this.showCreditCardCard = creditCardTotal > 0;
+  }
+
+  private calculateSummary(transactions: Transaction[]): CashFlowSummary {
+
+    const entradas = transactions.filter(t => t.type === 'entrada').reduce((acc, curr) => acc + curr.amount, 0);
+
+    const saidas = transactions.filter(t => t.type === 'saida').reduce((acc, curr) => acc + curr.amount, 0);
+
+    return { entradas, saidas, saldo: entradas - saidas };
+
+  }
+
+  private filterTransactionsByMonth(transactions: Transaction[], monthDate: Date): Transaction[] {
+
+    const startMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0);
+
+    const endMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    return transactions.filter(t => {
+
+      const txDate = new Date(t.date);
+
+      return txDate >= startMonth && txDate <= endMonth;
+
     });
-    this.financeService.getSummaryForPeriod('week', today).subscribe(summary => {
-      this.weekSummary = summary;
-    });
-    this.financeService.getSummaryForPeriod('month', today).subscribe(summary => {
-      this.monthSummary = summary;
+
+  }
+
+  private filterTransactionsByViewMode(transactions: Transaction[]): Transaction[] {
+    if (this.viewMode === 'DIARIA') {
+      return this.filterTransactionsByDay(transactions, this.selectedDayDate);
+    }
+    return this.filterTransactionsByMonth(transactions, this.selectedMonthDate);
+  }
+
+  private filterTransactionsByDay(transactions: Transaction[], dayDate: Date): Transaction[] {
+    const startDay = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 0, 0, 0, 0);
+    const endDay = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 23, 59, 59, 999);
+    return transactions.filter(t => {
+      const txDate = new Date(t.date);
+      return txDate >= startDay && txDate <= endDay;
     });
   }
 
-  calculateBalance() {
-    const entradas = this.transactions
-      .filter(t => t.type === 'entrada')
-      .reduce((acc, curr) => acc + curr.amount, 0);
+  private updateSelectedMonthLabel() {
 
-    const saidas = this.transactions
-      .filter(t => t.type === 'saida')
-      .reduce((acc, curr) => acc + curr.amount, 0);
+    const monthLabel = this.capitalize(this.selectedMonthDate.toLocaleDateString('pt-BR', { month: 'long' }));
+
+    this.selectedMonthLabel = `${monthLabel} / ${this.selectedMonthDate.getFullYear()}`;
+
+    const today = new Date();
+
+    this.isCurrentMonthSelected = today.getFullYear() === this.selectedMonthDate.getFullYear()
+      && today.getMonth() === this.selectedMonthDate.getMonth();
+
+  }
+
+  private updateSelectedDayLabel() {
+    const dayLabel = this.selectedDayDate.toLocaleDateString('pt-BR');
+    this.selectedDayLabel = dayLabel;
+  }
+
+  onViewModeChange(mode: 'MENSAL' | 'DIARIA') {
+    this.viewMode = mode;
+    this.applyDateFilters(this.transactions);
+    this.updatePeriodoResumo();
+  }
+
+  goToPreviousMonth() {
+
+    this.selectedMonthDate = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() - 1, 1);
+
+    this.updateSelectedMonthLabel();
+
+    this.applyDateFilters(this.transactions);
+    this.updatePeriodoResumo();
+
+  }
+
+  goToNextMonth() {
+
+    this.selectedMonthDate = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() + 1, 1);
+
+    this.updateSelectedMonthLabel();
+
+    this.applyDateFilters(this.transactions);
+    this.updatePeriodoResumo();
+
+  }
+
+  private updatePeriodoResumo() {
+    const { start, end } = this.getPeriodoRange();
+    const recordsInRange = this.financialRecords.filter(record => {
+      const recordDate = record.data.toDate();
+      return recordDate >= start && recordDate <= end;
+    });
+
+    this.entradasPeriodo = this.sumByTipo(recordsInRange, 'entrada');
+    this.saidasPeriodo = this.sumByTipo(recordsInRange, 'saida');
+    this.faturasCartaoPeriodo = recordsInRange
+      .filter(record => record.tipo === 'entrada' && record.metodoPagamento === 'credito')
+      .reduce((acc, curr) => acc + curr.valor, 0);
 
     this.balance = {
-      entradas,
-      saidas,
-      total: entradas - saidas
+      entradas: this.entradasPeriodo,
+      saidas: this.saidasPeriodo,
+      total: this.entradasPeriodo - this.saidasPeriodo
     };
   }
 
+  private getPeriodoRange(): { start: Date; end: Date } {
+    if (this.viewMode === 'DIARIA') {
+      const start = new Date(this.selectedDayDate.getFullYear(), this.selectedDayDate.getMonth(), this.selectedDayDate.getDate(), 0, 0, 0, 0);
+      const end = new Date(this.selectedDayDate.getFullYear(), this.selectedDayDate.getMonth(), this.selectedDayDate.getDate(), 23, 59, 59, 999);
+      return { start, end };
+    }
+    const start = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth(), 1, 0, 0, 0, 0);
+    const end = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  private sumByTipo(records: FinancialRecord[], tipo: FinancialRecord['tipo']): number {
+    return records
+      .filter(record => record.tipo === tipo)
+      .reduce((acc, curr) => acc + curr.valor, 0);
+  }
+
+  goToNovaVenda() {
+    this.router.navigate(['/tabs/caixa']);
+  }
 
 }
+

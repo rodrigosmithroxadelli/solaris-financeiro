@@ -1,24 +1,29 @@
-<ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>Catálogo</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" class="caixa-content">
+  <div class="caixa-form catalog-form">
+    <div class="form-header">
+      <div class="header-icon header-icon--catalog">
+        <ion-icon name="cube-outline"></ion-icon>
+      </div>
+      <div class="header-text">
+        <h2>Catálogo</h2>
+        <p>Serviços e produtos cadastrados</p>
+      </div>
+    </div>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <!-- Filters Section -->
-  <ion-card>
-    <ion-card-content>
-      <!-- Search Bar -->
+    <div class="form-group">
+      <div class="form-label">Buscar itens</div>
       <ion-searchbar
+        class="form-searchbar"
         [(ngModel)]="searchTerm"
         (ionInput)="onSearchChange($event)"
         placeholder="Buscar item por nome..."
         debounce="300"
       ></ion-searchbar>
+    </div>
 
-      <!-- Type Filter -->
-      <div class="filter-section">
-        <ion-label>Tipo:</ion-label>
+    <div class="form-group">
+      <div class="form-label">Tipo</div>
+      <ion-item class="form-item" lines="none">
         <ion-select
           [(ngModel)]="selectedType"
           (ionChange)="onTypeChange($event)"
@@ -28,35 +33,32 @@
           <ion-select-option value="SERVICE">Serviços</ion-select-option>
           <ion-select-option value="PRODUCT">Produtos</ion-select-option>
         </ion-select>
-      </div>
-    </ion-card-content>
-  </ion-card>
+      </ion-item>
+    </div>
 
-  <!-- Items List -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Itens do Catálogo ({{ filteredItems.length }})</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <!-- List of Items -->
-      <ion-list *ngIf="filteredItems.length > 0; else emptyState">
+    <div class="section-divider"></div>
+
+    <div class="catalog-section">
+      <h3>Itens do catálogo ({{ filteredItems.length }})</h3>
+      <p>Listagem completa para consulta rápida</p>
+      <ion-list class="catalog-list" *ngIf="filteredItems.length > 0; else emptyState">
         <ion-item *ngFor="let item of filteredItems" class="catalog-item">
           <ion-label>
-            <h2>{{ item.name }}</h2>
-            <p>
+            <div class="catalog-title">{{ item.name }}</div>
+            <div class="catalog-subtitle">
               <ion-badge [color]="getTypeBadgeColor(item.type)">
                 {{ getTypeLabel(item.type) }}
               </ion-badge>
-            </p>
+            </div>
           </ion-label>
 
           <div slot="end" class="item-prices">
             <div class="price-group">
-              <div class="price-label">Venda:</div>
+              <div class="price-label">Venda</div>
               <div class="price-value">{{ formatCurrency(item.unitPrice) }}</div>
             </div>
             <div class="price-group" *ngIf="item.costPrice && item.costPrice > 0">
-              <div class="price-label">Custo:</div>
+              <div class="price-label">Custo</div>
               <div class="price-value">{{ formatCurrency(item.costPrice) }}</div>
             </div>
           </div>
@@ -72,90 +74,97 @@
         </ion-item>
       </ion-list>
 
-      <!-- Empty State -->
       <ng-template #emptyState>
         <div class="empty-state">
           <ion-icon name="cube-outline"></ion-icon>
-          <h3>Nenhum item encontrado</h3>
-          <p>Clique no botão "+" para adicionar um novo item ao catálogo</p>
+          <p>Nenhum item encontrado</p>
+          <ion-button class="submit-button" (click)="openAddItemModal()">
+            <ion-icon name="add" slot="start"></ion-icon>
+            Adicionar primeiro item
+          </ion-button>
         </div>
       </ng-template>
-    </ion-card-content>
-  </ion-card>
-</ion-content>
+    </div>
 
-<!-- FAB Button to Add Item -->
-<ion-fab slot="fixed" vertical="bottom" horizontal="end">
-  <ion-fab-button (click)="openAddItemModal()">
-    <ion-icon name="add"></ion-icon>
-  </ion-fab-button>
-</ion-fab>
+    <ion-button expand="block" class="submit-button" (click)="openAddItemModal()">
+      <ion-icon name="add" slot="start"></ion-icon>
+      Adicionar item
+    </ion-button>
+  </div>
+</ion-content>
 
 <!-- Modal for Add/Edit Item -->
 <ion-modal [isOpen]="showItemModal" (didDismiss)="closeItemModal()">
   <ng-template>
-    <ion-header [translucent]="true">
-      <ion-toolbar color="primary">
-        <ion-title>{{ isEditMode ? 'Editar Item' : 'Novo Item' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button (click)="closeItemModal()">
+    <ion-content class="catalog-modal">
+      <div class="caixa-form catalog-modal-form">
+        <div class="form-header">
+          <div class="header-icon header-icon--catalog">
+            <ion-icon name="cube-outline"></ion-icon>
+          </div>
+          <div class="header-text">
+            <h2>{{ isEditMode ? 'Editar Item' : 'Novo Item' }}</h2>
+            <p>Preencha os dados do catálogo</p>
+          </div>
+          <ion-button class="header-close" fill="clear" type="button" (click)="closeItemModal()">
             <ion-icon name="close"></ion-icon>
           </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+        </div>
 
-    <ion-content class="ion-padding">
-      <!-- Name -->
-      <ion-item>
-        <ion-label position="stacked">Nome *</ion-label>
-        <ion-input
-          [(ngModel)]="formItem.name"
-          placeholder="Ex: Limpeza do motor"
-          type="text"
-        ></ion-input>
-      </ion-item>
+        <div class="form-group">
+          <div class="form-label">Nome *</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              [(ngModel)]="formItem.name"
+              placeholder="Ex: Limpeza do motor"
+              type="text"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-      <!-- Type -->
-      <ion-item>
-        <ion-label position="stacked">Tipo *</ion-label>
-        <ion-select [(ngModel)]="formItem.type">
-          <ion-select-option value="SERVICE">Serviço</ion-select-option>
-          <ion-select-option value="PRODUCT">Produto</ion-select-option>
-        </ion-select>
-      </ion-item>
+        <div class="form-group">
+          <div class="form-label">Tipo *</div>
+          <ion-item class="form-item" lines="none">
+            <ion-select [(ngModel)]="formItem.type">
+              <ion-select-option value="SERVICE">Serviço</ion-select-option>
+              <ion-select-option value="PRODUCT">Produto</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
 
-      <!-- Unit Price -->
-      <ion-item>
-        <ion-label position="stacked">Preço de Venda (R$) *</ion-label>
-        <ion-input
-          [(ngModel)]="formItem.unitPrice"
-          placeholder="Ex: 150.00"
-          type="number"
-          inputmode="decimal"
-        ></ion-input>
-      </ion-item>
+        <div class="form-group">
+          <div class="form-label">Preço de Venda (R$) *</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              [(ngModel)]="formItem.unitPrice"
+              placeholder="Ex: 150.00"
+              type="number"
+              inputmode="decimal"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-      <!-- Cost Price -->
-      <ion-item>
-        <ion-label position="stacked">Preço de Custo (R$)</ion-label>
-        <ion-input
-          [(ngModel)]="formItem.costPrice"
-          placeholder="Ex: 80.00"
-          type="number"
-          inputmode="decimal"
-        ></ion-input>
-      </ion-item>
+        <div class="form-group">
+          <div class="form-label">Preço de Custo (R$)</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              [(ngModel)]="formItem.costPrice"
+              placeholder="Ex: 80.00"
+              type="number"
+              inputmode="decimal"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-      <!-- Buttons -->
-      <div class="modal-buttons">
-        <ion-button expand="block" fill="outline" (click)="closeItemModal()">
-          Cancelar
-        </ion-button>
-        <ion-button expand="block" color="primary" (click)="saveItem()">
-          <ion-icon name="checkmark" slot="start"></ion-icon>
-          Salvar
-        </ion-button>
+        <div class="modal-actions">
+          <ion-button expand="block" fill="outline" (click)="closeItemModal()">
+            Cancelar
+          </ion-button>
+          <ion-button expand="block" class="submit-button" (click)="saveItem()">
+            <ion-icon name="checkmark" slot="start"></ion-icon>
+            Salvar
+          </ion-button>
+        </div>
       </div>
     </ion-content>
   </ng-template>

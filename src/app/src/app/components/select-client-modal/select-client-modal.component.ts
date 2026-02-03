@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -22,6 +22,7 @@ import { Client } from '../../../../models/client.model'; // Corrected import pa
 import { ClientService } from '../../../../services/client.service'; // Corrected import path
 import { Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-select-client-modal',
@@ -48,9 +49,11 @@ import { map } from 'rxjs/operators';
 export class SelectClientModalComponent implements OnInit {
   private clientService = inject(ClientService);
   private modalCtrl = inject(ModalController);
+  private destroyRef = inject(DestroyRef);
 
   clients$: Observable<Client[]> = of([]);
   private allClients: Client[] = [];
+  private hasLoadedClients = false;
 
   constructor() {
     addIcons({ personAdd });
@@ -61,10 +64,16 @@ export class SelectClientModalComponent implements OnInit {
   }
 
   loadClients() {
-    this.clientService.getClients().subscribe((clients: Client[]) => { // Explicitly type clients
-      this.allClients = clients;
-      this.clients$ = of(this.allClients);
-    });
+    if (this.hasLoadedClients) {
+      return;
+    }
+    this.hasLoadedClients = true;
+    this.clientService.getClients()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((clients: Client[]) => { // Explicitly type clients
+        this.allClients = clients;
+        this.clients$ = of(this.allClients);
+      });
   }
 
   handleSearch(event: CustomEvent) { // Explicitly type event

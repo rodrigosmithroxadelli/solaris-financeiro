@@ -1,5 +1,5 @@
 // src/app/components/select-item-modal/select-item-modal.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@ionic/angular/standalone';
 import { CatalogService } from '../../services/catalog.service';
 import { CatalogItem } from '../../models/catalog.model';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-select-item-modal',
@@ -41,16 +42,24 @@ import { CatalogItem } from '../../models/catalog.model';
 export class SelectItemModalComponent implements OnInit {
   private catalogService = inject(CatalogService);
   private modalCtrl = inject(ModalController);
+  private destroyRef = inject(DestroyRef);
 
   allItems: CatalogItem[] = [];
   filteredItems: CatalogItem[] = [];
   searchTerm: string = '';
+  private hasLoadedItems = false;
 
   ngOnInit() {
-    this.catalogService.getCatalogItems().subscribe(items => {
-      this.allItems = items;
-      this.filteredItems = items;
-    });
+    if (this.hasLoadedItems) {
+      return;
+    }
+    this.hasLoadedItems = true;
+    this.catalogService.getCatalogItems()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(items => {
+        this.allItems = items;
+        this.filteredItems = items;
+      });
   }
 
   filterItems() {

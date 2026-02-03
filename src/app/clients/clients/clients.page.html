@@ -1,38 +1,61 @@
-<ion-header>
-  <ion-toolbar color="primary">
-    <ion-title>Meus Clientes</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="openClientFormModal(null)">
-        <ion-icon slot="icon-only" name="add"></ion-icon>
+<ion-content [fullscreen]="true" class="clients-content">
+  <div class="clients-form">
+    <div class="form-header">
+      <div class="header-icon">
+        <ion-icon name="people-outline"></ion-icon>
+      </div>
+      <div class="header-text">
+        <h2>Clientes</h2>
+        <p>Cadastro e listagem completa</p>
+      </div>
+      <ion-button class="header-close" fill="clear" (click)="openClientFormModal(null)">
+        <ion-icon name="add"></ion-icon>
       </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+    </div>
 
-<ion-content>
-  <ion-list>
-    <ion-item *ngFor="let client of clients">
-      <ion-avatar slot="start" (click)="openClient(client)">
-        <div class="avatar-placeholder">{{ client.name.charAt(0) }}</div>
-      </ion-avatar>
-      <ion-label (click)="openClient(client)">
-        <h2>{{ client.name }}</h2>
-        <p *ngIf="client.whatsapp">WhatsApp: {{ client.whatsapp }}</p>
-        <p *ngIf="client.vehicles && client.vehicles.length > 0">
-          {{ client.vehicles[0].brand }} - {{ client.vehicles[0].model }} ({{ client.vehicles[0].plate }})
-        </p>
-        <p *ngIf="!client.vehicles || client.vehicles.length === 0">
-          Nenhum veículo cadastrado.
-        </p>
-      </ion-label>
-      <ion-button fill="clear" slot="end" (click)="openClientFormModal(client)">
-        <ion-icon slot="icon-only" name="create"></ion-icon>
-      </ion-button>
-    </ion-item>
-  </ion-list>
-  
-  <div *ngIf="clients.length === 0" class="ion-text-center ion-padding">
-    <p>Nenhum cliente cadastrado.</p>
-    <ion-button (click)="openClientFormModal(null)">Cadastrar Primeiro</ion-button>
+    <div class="form-group">
+      <div class="form-label">Lista de clientes</div>
+      <p class="form-helper">Use o botão de editar para alterar informações</p>
+      <ion-list class="clients-list" *ngIf="clients.length > 0; else emptyState">
+        <ion-item *ngFor="let client of clients" class="client-item" [button]="false" detail="false">
+          <div class="client-avatar" slot="start">
+            <span>{{ client.name.charAt(0) }}</span>
+          </div>
+          <ion-label>
+            <div class="client-title">{{ client.name }}</div>
+            <div class="client-subtitle" *ngIf="client.whatsapp">WhatsApp: {{ client.whatsapp }}</div>
+            <div class="client-subtitle" *ngIf="client.vehicles && client.vehicles.length > 0">
+              {{ client.vehicles[0].brand }} - {{ client.vehicles[0].model }} ({{ client.vehicles[0].plate }})
+            </div>
+            <div class="client-subtitle" *ngIf="!client.vehicles || client.vehicles.length === 0">
+              Nenhum veículo cadastrado.
+            </div>
+          </ion-label>
+          <div slot="end" class="client-actions">
+            <ion-button fill="clear" size="small" (click)="openClientFormModal(client)">
+              <ion-icon slot="icon-only" name="create"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" size="small" color="danger" disabled>
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      </ion-list>
+    </div>
+
+    <ng-template #emptyState>
+      <div class="empty-state">
+        <p>Nenhum cliente cadastrado</p>
+        <ion-button class="submit-button" (click)="openClientFormModal(null)">
+          <ion-icon name="add" slot="start"></ion-icon>
+          Cadastrar primeiro cliente
+        </ion-button>
+      </div>
+    </ng-template>
+
+    <ion-button expand="block" class="submit-button" (click)="openClientFormModal(null)">
+      <ion-icon name="add" slot="start"></ion-icon>
+      Novo cliente
+    </ion-button>
   </div>
 </ion-content>

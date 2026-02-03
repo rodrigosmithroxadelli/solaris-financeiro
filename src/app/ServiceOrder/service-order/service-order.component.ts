@@ -1,43 +1,33 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonButton,
   IonIcon,
   IonItem,
   IonLabel,
   IonList,
-  IonInput,
+  ToastController,
+  AlertController,
+  IonBadge,
+  IonToggle,
   IonGrid,
   IonRow,
-  IonCol,
-  IonButtons,
-  ModalController,
-  ToastController,
-  IonNote // Added IonNote here
+  IonCol
 } from '@ionic/angular/standalone';
-import { OrderManagerService } from '../../services/order-manager.service';
+import { OrderService } from '../../services/order.service';
+import { PaymentService } from '../../services/payment.service';
+import { FinanceService } from '../../services/finance.service';
 import { AuthService } from '../../services/auth.service'; // Import AuthService
 import { User } from '../../models/user.model'; // Import User
-import { OrderItem, Client, Vehicle, Payment, ServiceOrder } from '../../models/service-order.model';
+import { ServiceOrder, ServiceStatus } from '../../models/service-order.model';
 import { addIcons } from 'ionicons';
-import { Router } from '@angular/router';
-import { save, refresh, addCircle, trash, personCircleOutline, carOutline, walletOutline } from 'ionicons/icons';
-import { SelectItemModalComponent } from '../../components/select-item-modal/select-item-modal.component';
-import { SelectClientModalComponent } from '../../src/app/components/select-client-modal/select-client-modal.component';
-import { SelectVehicleModalComponent } from '../../src/app/components/select-vehicle-modal/select-vehicle-modal.component';
-import { PaymentDialogComponent } from '../../Payment/payment-dialog/payment-dialog.component';
-import { CatalogItem } from '../../models/catalog.model';
+import { trash, cashOutline, close, checkmark } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+ 
 
 @Component({
   selector: 'app-service-order',
@@ -47,51 +37,44 @@ import { take } from 'rxjs/operators';
   imports: [
     CommonModule,
     FormsModule,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
     IonContent,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
     IonButton,
     IonIcon,
     IonItem,
     IonLabel,
     IonList,
-    IonInput,
+    IonBadge,
+    IonToggle,
     IonGrid,
     IonRow,
-    IonCol,
-    IonButtons,
-    IonNote // Added IonNote
+    IonCol
   ]
 })
 export class ServiceOrderComponent implements OnInit, OnDestroy {
-  orderManager = inject(OrderManagerService);
+  private orderService = inject(OrderService);
+  private paymentService = inject(PaymentService);
+  private financeService = inject(FinanceService);
   private authService = inject(AuthService);
-  private modalCtrl = inject(ModalController);
-  private router = inject(Router);
   private toastController = inject(ToastController);
+  private alertController = inject(AlertController);
+  private destroyRef = inject(DestroyRef);
 
   currentUser: User | null = null;
   
-  currentOrder = this.orderManager.currentOrder;
-  subtotal = this.orderManager.subtotal;
-  totalPrice = this.orderManager.totalPrice;
-  totalPaid = this.orderManager.totalPaid;
-  balanceDue = this.orderManager.balanceDue;
-
   allOrders: ServiceOrder[] = [];
+  private ordersSnapshot: ServiceOrder[] = [];
   private subscriptions = new Subscription();
+  private hasLoadedOrders = false;
+  onlyPending = true;
 
   constructor() {
-    addIcons({ save, refresh, addCircle, trash, personCircleOutline, carOutline, walletOutline });
+    addIcons({ trash, cashOutline, close, checkmark });
   }
 
   ngOnInit() {
-    const authSub = this.authService.currentUser$.subscribe(user => {
+    const authSub = this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
       if (user && user.tenantId) {
         this.currentUser = user;
         this.loadDataForUser(user);
@@ -110,132 +93,96 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
   loadDataForUser(user: User) {
     if (!user.tenantId) return;
 
-    // Load initial empty order form
-    this.orderManager.resetCurrentOrder(user.tenantId);
+    if (!this.hasLoadedOrders) {
+      this.hasLoadedOrders = true;
+      const ordersSub = this.orderService.getOrdersOnce(true).subscribe(orders => {
+        this.ordersSnapshot = orders;
+        this.applyOrderFilters();
+      });
+      this.subscriptions.add(ordersSub);
+    }
+    if (this.currentUser?.tenantId) {
+      this.financeService.transactions$
+        .pipe(takeUntilDestroyed(this.destroyRef), take(1))
+        .subscribe(async transactions => {
+          const changed = await this.orderService.syncOrdersFromTransactions(transactions);
+          if (changed) {
+            this.showToast('OS atualizadas com lançamentos pendentes', 'success');
+          }
+        });
+    }
+  }
 
-    // Load the list of all orders
-    const ordersSub = this.orderManager.getOrders(user.tenantId).subscribe(orders => {
-      this.allOrders = orders.sort((a, b) => {
+
+  onPendingToggle() {
+    this.applyOrderFilters();
+  }
+
+  private applyOrderFilters() {
+    const filtered = this.ordersSnapshot
+      .filter(order => order.status !== 'CANCELADA')
+      .filter(order => !this.onlyPending || (order.paymentStatus ?? 'PENDENTE') === 'PENDENTE')
+      .sort((a, b) => {
         const timeA = a.timestamps?.created?.toMillis() || 0;
         const timeB = b.timestamps?.created?.toMillis() || 0;
         return timeB - timeA;
       });
+    this.allOrders = filtered;
+  }
+
+  async togglePaymentStatus(order: ServiceOrder, event: any) {
+    const isChecked = event.detail?.checked;
+    const newStatus = isChecked ? 'PAGO' : 'PENDENTE';
+    try {
+      await this.orderService.updatePaymentStatus(order.id!, newStatus);
+      if (order.linkedTransactionId) {
+        await this.paymentService.updateTransactionPaymentStatus(order.linkedTransactionId, newStatus);
+      }
+      await this.showToast('Status de pagamento atualizado!', 'success');
+    } catch (error) {
+      await this.showToast('Erro ao atualizar pagamento', 'danger');
+    }
+  }
+
+  async setServiceStatus(order: ServiceOrder, status: ServiceStatus) {
+    try {
+      await this.orderService.updateServiceStatus(order.id!, status);
+      await this.showToast('Status do serviço atualizado!', 'success');
+    } catch (error) {
+      await this.showToast('Erro ao atualizar status do serviço', 'danger');
+    }
+  }
+
+  async confirmDeleteOrder(order: ServiceOrder) {
+    const alert = await this.alertController.create({
+      header: 'Confirmar exclusão',
+      message: 'A Ordem de Serviço será removida. Lançamentos vinculados poderão ser excluídos.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Confirmar',
+          role: 'destructive',
+          handler: () => this.deleteOrder(order)
+        }
+      ]
     });
-    this.subscriptions.add(ordersSub);
+    await alert.present();
   }
 
-  selectOrder(order: ServiceOrder) {
-    this.orderManager.setCurrentOrder(order);
-  }
-
-  async handleSaveOrder() {
-    // Ensure tenantId is set on the order before saving
-    if (!this.currentOrder().tenantId && this.currentUser?.tenantId) {
-      this.orderManager.currentOrder.update(order => ({ ...order, tenantId: this.currentUser!.tenantId }));
-    }
-    
-    const success = await this.orderManager.saveOrder();
-    if (success) {
-      this.showToast('Ordem salva com sucesso!', 'success');
-      // The real-time listener from getOrders will update the list automatically.
-      // We also reset the form to a new draft.
-      this.orderManager.resetCurrentOrder(this.currentUser!.tenantId);
-    } else {
-      this.showToast('Falha ao salvar a ordem.', 'danger');
-    }
-  }
-
-  handleResetOrder() {
-    if (this.currentUser?.tenantId) {
-      this.orderManager.resetCurrentOrder(this.currentUser.tenantId);
-      this.showToast('Formulário limpo!', 'success');
-    }
-  }
-
-  // --- UI Handler Methods ---
-
-  async openClientSelectionModal() {
-    const modal = await this.modalCtrl.create({ component: SelectClientModalComponent });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss<Client>();
-
-    if (role === 'confirm' && data) {
-      this.orderManager.currentOrder.update(order => ({
-        ...order,
-        clientId: data.id!,
-        clientName: data.name,
-        vehicle: data.vehicles.length > 0 ? data.vehicles[0] : { plate: '', brand: '', model: '', color: '' } 
-      }));
-      if (data.vehicles.length === 0) this.openVehicleSelectionModal();
-    } else if (role === 'add_new') {
-      this.router.navigate(['/clients']);
-    }
-  }
-
-  async openVehicleSelectionModal() {
-    const currentClient = this.orderManager.currentOrder().clientId;
-    if (!currentClient) {
-      this.showToast('Selecione um cliente primeiro.', 'warning');
-      return;
-    }
-
-    const modal = await this.modalCtrl.create({
-      component: SelectVehicleModalComponent,
-      componentProps: { clientId: currentClient }
-    });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss<Vehicle>();
-
-    if (role === 'confirm' && data) {
-      this.orderManager.currentOrder.update(order => ({ ...order, vehicle: data }));
-    }
-  }
-
-  async openSelectItemModal() {
-    const modal = await this.modalCtrl.create({ component: SelectItemModalComponent });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss<CatalogItem>();
-
-    if (role === 'confirm' && data) {
-      const newItem: OrderItem = {
-        id: data.id!, type: data.type, name: data.name, quantity: 1,
-        unitPrice: data.unitPrice, costPrice: data.costPrice || 0, discount: 0,
-        total: data.unitPrice,
-      };
-      this.orderManager.addItem(newItem);
-    }
-  }
-
-  async handleCheckout() {
-    const pendingAmount = this.orderManager.balanceDue();
-    if (pendingAmount <= 0) {
-      this.showToast('Não há valor pendente para pagamento.', 'warning');
-      return;
-    }
-
-    const modal = await this.modalCtrl.create({
-      component: PaymentDialogComponent,
-      componentProps: { pendingAmount: pendingAmount }
-    });
-    await modal.present();
-    const { data, role } = await modal.onDidDismiss<Partial<Payment>>();
-
-    if (role === 'confirm' && data && data.grossValue && data.grossValue > 0) {
-      this.orderManager.addPayment(
-        data.grossValue, data.taxRate || 0, data.method || 'CASH', data.installments || 1
-      );
-      this.showToast('Pagamento adicionado com sucesso!', 'success');
-    }
-  }
-
-  handleRemoveItem(itemId: string) {
-    this.orderManager.removeItem(itemId);
-  }
-
-  handleUpdateQuantity(itemId: string, event: any) {
-    const newQuantity = (event.target as HTMLInputElement).valueAsNumber;
-    if (!isNaN(newQuantity) && newQuantity > 0) {
-      this.orderManager.updateItemQuantity(itemId, newQuantity);
+  private async deleteOrder(order: ServiceOrder) {
+    try {
+      if (order.paymentStatus === 'PENDENTE') {
+        if (order.linkedTransactionId) {
+          await this.paymentService.deleteTransaction(order.linkedTransactionId);
+        }
+        await this.orderService.deleteOrder(order.id!);
+        await this.showToast('Ordem removida com sucesso!', 'success');
+      } else {
+        await this.orderService.cancelOrder(order.id!);
+        await this.showToast('Ordem cancelada com sucesso!', 'success');
+      }
+    } catch (error) {
+      await this.showToast('Erro ao remover ordem', 'danger');
     }
   }
   
@@ -247,5 +194,38 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
       position: 'top'
     });
     await toast.present();
+  }
+
+  getServiceStatusLabel(order: ServiceOrder): string {
+    const status = order.serviceStatus || order.status || 'AGUARDANDO_ACAO';
+    switch (status) {
+      case 'AGUARDANDO_ACAO':
+        return 'AGUARDANDO AÇÃO';
+      case 'CONCLUIDA':
+        return 'CONCLUÍDA';
+      case 'CANCELADA':
+        return 'CANCELADA';
+      default:
+        return status.replace('_', ' ');
+    }
+  }
+
+  getPaymentMethodLabel(order: ServiceOrder): string {
+    switch (order.paymentMethod) {
+      case 'dinheiro':
+        return 'Dinheiro';
+      case 'pix':
+        return 'PIX';
+      case 'debito':
+        return 'Débito';
+      case 'credito':
+        return 'Crédito';
+      case 'boleto':
+        return 'Boleto';
+      case 'transferencia':
+        return 'Transferência';
+      default:
+        return '---';
+    }
   }
 }

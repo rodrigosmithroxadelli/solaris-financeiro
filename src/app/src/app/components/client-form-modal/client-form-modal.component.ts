@@ -21,7 +21,7 @@ import {
   AlertController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { addCircle, trash, carSport } from 'ionicons/icons';
+import { addCircle, trash, carSport, peopleOutline, close } from 'ionicons/icons';
 import { Client, Vehicle } from '../../../../models/client.model';
 import { ClientService } from '../../../../services/client.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -69,7 +69,7 @@ export class ClientFormModalComponent implements OnInit {
   };
 
   constructor() {
-    addIcons({ addCircle, trash, carSport });
+    addIcons({ addCircle, trash, carSport, peopleOutline, close });
   }
 
   ngOnInit() {

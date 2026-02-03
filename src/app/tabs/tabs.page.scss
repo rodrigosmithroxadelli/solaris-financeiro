@@ -1,58 +1,83 @@
-/* Ensure all tab buttons are visible */
-ion-tab-bar {
-  --border-width: 1px 0 0 0;
-  --border-style: solid;
-  --border-color: var(--ion-color-step-200);
-  
-  /* Make tab bar scrollable for many tabs */
-  display: flex !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  -webkit-overflow-scrolling: touch;
-  
-  /* Ensure proper sizing */
-  width: 100%;
-  gap: 0;
-  
-  /* Ensure tab buttons don't shrink or hide */
-  ion-tab-button {
-    flex-shrink: 0 !important;
-    min-width: auto !important;
-    width: auto !important;
-    max-width: none !important;
-    display: flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    padding: 0 8px !important;
-    
-    /* Ensure icon and label are visible */
-    ion-icon {
-      display: block !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-    }
-    
-    ion-label {
-      display: block !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      font-size: 12px !important;
-    }
-  }
-  
-  /* Hide scrollbar for mobile */
-  &::-webkit-scrollbar {
-    display: none;
-  }
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+:host {
+
+  display: block;
+
 }
 
-/* Explicitly ensure caixa tab button is visible */
-ion-tab-button[tab="caixa"] {
-  display: flex !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  pointer-events: auto !important;
-  flex-shrink: 0 !important;
+
+
+.dashboard-header {
+
+  position: sticky;
+
+  top: 0;
+
+  z-index: 1000;
+
 }
+
+
+
+.header-content {
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  gap: 12px;
+
+}
+
+
+
+.header-left {
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+}
+
+.header-logo {
+
+  height: 75px;
+
+  width: auto;
+
+}
+
+
+
+.quick-nav-item {
+
+  background: transparent;
+
+  border: none;
+
+  padding: 0;
+
+}
+
+
+
+@media (min-width: 1024px) {
+
+  .dashboard-header ion-toolbar {
+
+    padding-bottom: 4px;
+
+  }
+
+  .header-logo {
+
+    height: 75px;
+
+  }
+
+}
+

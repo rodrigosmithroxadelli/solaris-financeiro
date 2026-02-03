@@ -1,9 +1,10 @@
-import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, addDoc, collectionData, query, doc, docData, setDoc, updateDoc, where, deleteDoc } from '@angular/fire/firestore';
-import { Observable, of, firstValueFrom } from 'rxjs';
+import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Firestore, collection, addDoc, query, doc, setDoc, updateDoc, where, deleteDoc, getDocs, getDoc, limit, startAfter, orderBy } from '@angular/fire/firestore';
+import { Observable, of, firstValueFrom, shareReplay, BehaviorSubject, from } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import { CatalogItem } from '../models/catalog.model';
 import { AuthService } from './auth.service';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -11,26 +12,33 @@ import { AuthService } from './auth.service';
 export class CatalogService {
   private firestore = inject(Firestore);
   private authService = inject(AuthService);
+  private environmentInjector = inject(EnvironmentInjector);
 
   private readonly CATALOG_COLLECTION = 'catalogItems'; // Top-level collection for catalog items
+  private readonly PAGE_SIZE = 20;
+  private catalogCache$?: Observable<CatalogItem[]>;
+  private catalogSubject = new BehaviorSubject<CatalogItem[]>([]);
+  private catalogLastDoc: QueryDocumentSnapshot<DocumentData> | null = null;
+  private catalogHasMore = true;
+  private catalogLoading = false;
+  private searchLastDocByTerm = new Map<string, QueryDocumentSnapshot<DocumentData> | null>();
+  private searchHasMoreByTerm = new Map<string, boolean>();
+  private filterLastDocByType = new Map<'SERVICE' | 'PRODUCT', QueryDocumentSnapshot<DocumentData> | null>();
+  private filterHasMoreByType = new Map<'SERVICE' | 'PRODUCT', boolean>();
 
   /**
    * Retrieves all catalog items for the current tenant in real-time.
    */
   getCatalogItems(): Observable<CatalogItem[]> {
-    return this.authService.currentUser$.pipe(
-      switchMap(user => {
-        console.log('CatalogService.getCatalogItems() - user:', user);
-        if (!user || !user.tenantId) {
-          console.error('CatalogService: Cannot get items, user or tenantId is missing.');
-          return of([]);
-        }
-        console.log('CatalogService: Loading items for tenantId:', user.tenantId);
-        const catalogCollectionRef = collection(this.firestore, this.CATALOG_COLLECTION);
-        const q = query(catalogCollectionRef, where('tenantId', '==', user.tenantId));
-        return collectionData(q, { idField: 'id' }) as Observable<CatalogItem[]>;
-      })
+    if (this.catalogCache$) {
+      void this.loadNextCatalogPage();
+      return this.catalogCache$;
+    }
+    this.catalogCache$ = this.catalogSubject.asObservable().pipe(
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+    void this.loadNextCatalogPage();
+    return this.catalogCache$;
   }
 
   /**
@@ -43,15 +51,7 @@ export class CatalogService {
           console.error('CatalogService: Cannot get item by ID, user or tenantId is missing.');
           return of({} as CatalogItem);
         }
-        const itemDocRef = doc(this.firestore, this.CATALOG_COLLECTION, id);
-        return docData(itemDocRef, { idField: 'id' }).pipe(
-          map(item => {
-            if (item && (item as CatalogItem).tenantId === user.tenantId) {
-              return item as CatalogItem;
-            }
-            return {} as CatalogItem;
-          })
-        );
+        return from(this.getCatalogItemByIdOnce(user.tenantId, id));
       })
     );
   }
@@ -70,7 +70,9 @@ export class CatalogService {
       throw new Error('Tenant ID is required to save a catalog item.');
     }
 
-    const catalogCollectionRef = collection(this.firestore, this.CATALOG_COLLECTION);
+    const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.CATALOG_COLLECTION)
+    );
     let itemId = item.id;
 
     const itemToSave: CatalogItem = { ...item, tenantId: tenantId };
@@ -78,15 +80,30 @@ export class CatalogService {
     try {
       if (itemId) {
         // Update existing item
-        const docRef = doc(catalogCollectionRef, itemId);
-        await updateDoc(docRef, itemToSave as Partial<CatalogItem>);
+        const docRef = runInInjectionContext(this.environmentInjector, () =>
+          doc(catalogCollectionRef, itemId)
+        );
+        await runInInjectionContext(this.environmentInjector, () =>
+          updateDoc(docRef, itemToSave as Partial<CatalogItem>)
+        );
         console.log('CatalogService: Item updated successfully:', itemId);
       } else {
         // Create new item
-        const newDocRef = await addDoc(catalogCollectionRef, itemToSave as CatalogItem);
+        const newDocRef = await runInInjectionContext(this.environmentInjector, () =>
+          addDoc(catalogCollectionRef, itemToSave as CatalogItem)
+        );
         itemId = newDocRef.id;
         console.log('CatalogService: New item created successfully with ID:', itemId);
       }
+      this.catalogCache$ = undefined;
+      this.catalogSubject.next([]);
+      this.catalogLastDoc = null;
+      this.catalogHasMore = true;
+      this.catalogLoading = false;
+      this.searchLastDocByTerm.clear();
+      this.searchHasMoreByTerm.clear();
+      this.filterLastDocByType.clear();
+      this.filterHasMoreByType.clear();
       return itemId;
     } catch (error) {
       console.error('CatalogService: Error saving item:', error);
@@ -106,8 +123,13 @@ export class CatalogService {
     }
 
     try {
-      const itemDocRef = doc(this.firestore, this.CATALOG_COLLECTION, id);
-      await deleteDoc(itemDocRef);
+      const itemDocRef = runInInjectionContext(this.environmentInjector, () =>
+        doc(this.firestore, this.CATALOG_COLLECTION, id)
+      );
+      await runInInjectionContext(this.environmentInjector, () =>
+        deleteDoc(itemDocRef)
+      );
+      this.catalogCache$ = undefined;
       console.log('CatalogService: Item deleted successfully:', id);
     } catch (error) {
       console.error('CatalogService: Error deleting item:', error);
@@ -127,19 +149,7 @@ export class CatalogService {
           console.error('CatalogService: Cannot search items, user or tenantId is missing.');
           return of([]);
         }
-
-        const catalogCollectionRef = collection(this.firestore, this.CATALOG_COLLECTION);
-        const q = query(catalogCollectionRef, where('tenantId', '==', user.tenantId));
-
-        // Client-side filtering after fetching
-        return collectionData(q, { idField: 'id' }).pipe(
-          map(items => {
-            const lowerCaseSearchTerm = searchTerm.toLowerCase();
-            return (items as CatalogItem[]).filter(item =>
-              item.name.toLowerCase().includes(lowerCaseSearchTerm)
-            );
-          })
-        );
+        return from(this.searchCatalogItemsOnce(user.tenantId, searchTerm));
       })
     );
   }
@@ -156,16 +166,115 @@ export class CatalogService {
           console.error('CatalogService: Cannot filter items, user or tenantId is missing.');
           return of([]);
         }
-
-        const catalogCollectionRef = collection(this.firestore, this.CATALOG_COLLECTION);
-        const q = query(
-          catalogCollectionRef,
-          where('tenantId', '==', user.tenantId),
-          where('type', '==', type)
-        );
-
-        return collectionData(q, { idField: 'id' }) as Observable<CatalogItem[]>;
+        return from(this.filterCatalogItemsByTypeOnce(user.tenantId, type));
       })
     );
+  }
+
+  private async loadNextCatalogPage(): Promise<void> {
+    if (this.catalogLoading || !this.catalogHasMore) {
+      return;
+    }
+    this.catalogLoading = true;
+    const currentUser = await firstValueFrom(this.authService.currentUser$);
+    if (!currentUser || !currentUser.tenantId) {
+      console.error('CatalogService: Cannot get items, user or tenantId is missing.');
+      this.catalogLoading = false;
+      return;
+    }
+    const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.CATALOG_COLLECTION)
+    );
+    const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
+      where('tenantId', '==', currentUser.tenantId),
+      orderBy('__name__'),
+      limit(this.PAGE_SIZE)
+    ];
+    if (this.catalogLastDoc) {
+      constraints.push(startAfter(this.catalogLastDoc));
+    }
+    const q = query(catalogCollectionRef, ...constraints);
+    const snapshot = await runInInjectionContext(this.environmentInjector, () =>
+      getDocs(q)
+    );
+    const newItems = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...(docSnap.data() as CatalogItem) }));
+    this.catalogLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : this.catalogLastDoc;
+    this.catalogHasMore = snapshot.docs.length === this.PAGE_SIZE;
+    this.catalogSubject.next([...this.catalogSubject.value, ...newItems]);
+    this.catalogLoading = false;
+  }
+
+  private async getCatalogItemByIdOnce(tenantId: string, id: string): Promise<CatalogItem> {
+    const itemDocRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, this.CATALOG_COLLECTION, id)
+    );
+    const itemDocSnap = await runInInjectionContext(this.environmentInjector, () =>
+      getDoc(itemDocRef)
+    );
+    if (itemDocSnap.exists()) {
+      const itemData = itemDocSnap.data() as CatalogItem;
+      if (itemData.tenantId === tenantId) {
+        return { id: itemDocSnap.id, ...itemData };
+      }
+    }
+    return {} as CatalogItem;
+  }
+
+  private async searchCatalogItemsOnce(tenantId: string, searchTerm: string): Promise<CatalogItem[]> {
+    const normalizedTerm = searchTerm.toLowerCase();
+    const lastDoc = this.searchLastDocByTerm.get(normalizedTerm) ?? null;
+    const hasMore = this.searchHasMoreByTerm.get(normalizedTerm) ?? true;
+    if (!hasMore) {
+      return [];
+    }
+    const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.CATALOG_COLLECTION)
+    );
+    const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
+      where('tenantId', '==', tenantId),
+      orderBy('__name__'),
+      limit(this.PAGE_SIZE)
+    ];
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    const q = query(catalogCollectionRef, ...constraints);
+    const snapshot = await runInInjectionContext(this.environmentInjector, () =>
+      getDocs(q)
+    );
+    const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : lastDoc;
+    this.searchLastDocByTerm.set(normalizedTerm, newLastDoc ?? null);
+    this.searchHasMoreByTerm.set(normalizedTerm, snapshot.docs.length === this.PAGE_SIZE);
+    return snapshot.docs
+      .map(docSnap => ({ id: docSnap.id, ...(docSnap.data() as CatalogItem) }))
+      .filter(item => item.name.toLowerCase().includes(normalizedTerm));
+  }
+
+  private async filterCatalogItemsByTypeOnce(tenantId: string, type: 'SERVICE' | 'PRODUCT'): Promise<CatalogItem[]> {
+    const lastDoc = this.filterLastDocByType.get(type) ?? null;
+    const hasMore = this.filterHasMoreByType.get(type) ?? true;
+    if (!hasMore) {
+      return [];
+    }
+    const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.CATALOG_COLLECTION)
+    );
+    const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
+      where('tenantId', '==', tenantId),
+      where('type', '==', type),
+      orderBy('__name__'),
+      limit(this.PAGE_SIZE)
+    ];
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    const q = query(catalogCollectionRef, ...constraints);
+    const snapshot = await runInInjectionContext(this.environmentInjector, () =>
+      getDocs(q)
+    );
+    const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : lastDoc;
+    this.filterLastDocByType.set(type, newLastDoc ?? null);
+    this.filterHasMoreByType.set(type, snapshot.docs.length === this.PAGE_SIZE);
+    return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...(docSnap.data() as CatalogItem) }));
   }
 }

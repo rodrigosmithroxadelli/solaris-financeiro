@@ -1,5 +1,5 @@
 // src/app/Catalog/service-catalog/service-catalog.component.ts
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -32,7 +32,7 @@ import {
 import { CatalogService } from '../../services/catalog.service';
 import { AuthService } from '../../services/auth.service';
 import { CatalogItem } from '../../models/catalog.model';
-import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { addIcons } from 'ionicons';
 import { add, create, trash, close, checkmark } from 'ionicons/icons';
 
@@ -69,17 +69,18 @@ import { add, create, trash, close, checkmark } from 'ionicons/icons';
     IonButtons
   ]
 })
-export class ServiceCatalogComponent implements OnInit, OnDestroy {
+export class ServiceCatalogComponent implements OnInit {
   catalogService = inject(CatalogService);
   authService = inject(AuthService);
   private toastController = inject(ToastController);
   private alertController = inject(AlertController);
+  private destroyRef = inject(DestroyRef);
 
   catalogItems: CatalogItem[] = [];
   filteredItems: CatalogItem[] = [];
   searchTerm: string = '';
   selectedType: 'ALL' | 'SERVICE' | 'PRODUCT' = 'ALL';
-  private itemsSubscription?: Subscription;
+  private hasLoadedCatalog = false;
 
   // Modal properties
   showItemModal = false;
@@ -100,16 +101,18 @@ export class ServiceCatalogComponent implements OnInit, OnDestroy {
     this.loadCatalogItems();
   }
 
-  ngOnDestroy() {
-    this.itemsSubscription?.unsubscribe();
-  }
-
   /**
    * Load catalog items and subscribe to real-time updates
    */
   loadCatalogItems() {
+    if (this.hasLoadedCatalog) {
+      return;
+    }
+    this.hasLoadedCatalog = true;
     console.log('ServiceCatalogComponent.loadCatalogItems() - iniciando...');
-    this.itemsSubscription = this.catalogService.getCatalogItems().subscribe({
+    this.catalogService.getCatalogItems()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (items) => {
         console.log('ServiceCatalogComponent: Items carregados:', items);
         this.catalogItems = items;
@@ -220,6 +223,8 @@ export class ServiceCatalogComponent implements OnInit, OnDestroy {
       const action = this.isEditMode ? 'atualizado' : 'criado';
       await this.showToast(`Item ${action} com sucesso!`, 'success');
       this.closeItemModal();
+      this.hasLoadedCatalog = false;
+      this.loadCatalogItems();
     } catch (error) {
       console.error('Error saving item:', error);
       await this.showToast('Erro ao salvar item', 'danger');

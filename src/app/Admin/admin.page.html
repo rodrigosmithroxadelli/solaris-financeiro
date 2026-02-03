@@ -1,127 +1,132 @@
-<ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>Administração</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" class="caixa-content">
+  <div class="caixa-form admin-form">
+    <div class="form-header">
+      <div class="header-icon header-icon--admin">
+        <ion-icon name="settings"></ion-icon>
+      </div>
+      <div class="header-text">
+        <h2>Administração</h2>
+        <p>Configurações e usuários do sistema</p>
+      </div>
+    </div>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <!-- Informações do Usuário Atual -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="person"></ion-icon>
-        Usuário Autenticado
-      </ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item>
-        <ion-label>
-          <h2>{{ currentUser?.email }}</h2>
-          <p *ngIf="currentUser?.displayName">({{ currentUser?.displayName }})</p>
-          <p>UID: {{ currentUser?.id }}</p>
-        </ion-label>
-        <!-- Removed role display for FirebaseUser as it's not directly available -->
-      </ion-item>
-      <ion-button expand="block" color="danger" (click)="logout()" class="ion-margin-top">
+    <div class="summary-section">
+      <h3>Usuário autenticado</h3>
+      <p>Dados do acesso atual</p>
+      <div class="summary-list">
+        <div class="summary-row">
+          <ion-icon name="person"></ion-icon>
+          <span>Email</span>
+          <strong>{{ currentUser?.email }}</strong>
+        </div>
+        <div class="summary-row" *ngIf="currentUser?.displayName">
+          <ion-icon name="person"></ion-icon>
+          <span>Nome</span>
+          <strong>{{ currentUser?.displayName }}</strong>
+        </div>
+        <div class="summary-row">
+          <ion-icon name="lock-closed"></ion-icon>
+          <span>UID</span>
+          <strong>{{ currentUser?.id }}</strong>
+        </div>
+      </div>
+      <ion-button expand="block" color="danger" (click)="logout()" class="submit-button danger-button">
         <ion-icon name="log-out" slot="start"></ion-icon>
         Sair
       </ion-button>
-    </ion-card-content>
-  </ion-card>
+    </div>
 
-  <!-- Perfil da Empresa -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="business"></ion-icon>
-        Perfil da Empresa
-      </ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
+    <div class="section-divider"></div>
+
+    <div class="summary-section">
+      <h3>Perfil da empresa</h3>
+      <p>Atualize os dados de contato</p>
       <form (ngSubmit)="saveCompanyProfile()">
-        <ion-item>
-          <ion-label position="stacked">Nome da Empresa *</ion-label>
-          <ion-input
-            type="text"
-            [(ngModel)]="companyProfileForm.name"
-            name="companyName"
-            placeholder="Nome da sua empresa"
-            required
-          ></ion-input>
-        </ion-item>
+        <div class="form-group">
+          <div class="form-label">Nome da Empresa *</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              type="text"
+              [(ngModel)]="companyProfileForm.name"
+              name="companyName"
+              placeholder="Nome da sua empresa"
+              required
+            ></ion-input>
+          </ion-item>
+        </div>
 
-        <ion-item>
-          <ion-label position="stacked">Telefone de Contato</ion-label>
-          <ion-input
-            type="tel"
-            [(ngModel)]="companyProfileForm.contactPhone"
-            name="companyPhone"
-            placeholder="(00) 00000-0000"
-          ></ion-input>
-        </ion-item>
+        <div class="form-group">
+          <div class="form-label">Telefone de Contato</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              type="tel"
+              [(ngModel)]="companyProfileForm.contactPhone"
+              name="companyPhone"
+              placeholder="(00) 00000-0000"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-        <ion-item>
-          <ion-label position="stacked">Email de Contato</ion-label>
-          <ion-input
-            type="email"
-            [(ngModel)]="companyProfileForm.contactEmail"
-            name="companyEmail"
-            placeholder="contato@suaempresa.com"
-          ></ion-input>
-        </ion-item>
+        <div class="form-group">
+          <div class="form-label">Email de Contato</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              type="email"
+              [(ngModel)]="companyProfileForm.contactEmail"
+              name="companyEmail"
+              placeholder="contato@suaempresa.com"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-        <ion-item>
-          <ion-label position="stacked">Endereço</ion-label>
-          <ion-input
-            type="text"
-            [(ngModel)]="companyProfileForm.address"
-            name="companyAddress"
-            placeholder="Rua, Número, Bairro, Cidade"
-          ></ion-input>
-        </ion-item>
+        <div class="form-group">
+          <div class="form-label">Endereço</div>
+          <ion-item class="form-item" lines="none">
+            <ion-input
+              type="text"
+              [(ngModel)]="companyProfileForm.address"
+              name="companyAddress"
+              placeholder="Rua, Número, Bairro, Cidade"
+            ></ion-input>
+          </ion-item>
+        </div>
 
-        <ion-button expand="block" type="submit" class="ion-margin-top">
+        <ion-button expand="block" type="submit" class="submit-button">
           Salvar Perfil da Empresa
         </ion-button>
       </form>
-    </ion-card-content>
-  </ion-card>
+    </div>
 
-  <!-- Configurações Gerais -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="settings"></ion-icon>
-        Configurações Gerais
-      </ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-button expand="block" routerLink="/catalog-management">
-        Gerenciar Catálogo de Serviços
-      </ion-button>
-    </ion-card-content>
-  </ion-card>
+    <div class="section-divider"></div>
 
-  <!-- Gerenciar Usuários (Always visible, access controlled by guard) -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>
-        <ion-icon name="shield-checkmark"></ion-icon>
-        Gerenciar Usuários (Locais)
-      </ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-button expand="block" (click)="openAddUserModal()" class="ion-margin-bottom">
+    <div class="optional-section">
+      <h3>Configurações gerais</h3>
+      <p>Ações administrativas rápidas</p>
+      <div class="optional-actions">
+        <ion-button class="optional-btn" routerLink="/catalog-management">
+          <ion-icon name="settings" slot="start"></ion-icon>
+          Gerenciar Catálogo de Serviços
+        </ion-button>
+      </div>
+    </div>
+
+    <div class="section-divider"></div>
+
+    <div class="summary-section">
+      <h3>Gerenciar usuários (locais)</h3>
+      <p>Controle de acessos cadastrados</p>
+      <ion-button expand="block" (click)="openAddUserModal()" class="submit-button">
         <ion-icon name="person-add" slot="start"></ion-icon>
         Adicionar Usuário
       </ion-button>
 
-      <ion-list *ngIf="users.length > 0">
-        <ion-item *ngFor="let user of users">
+      <ion-list class="transactions-list admin-list" *ngIf="users.length > 0; else emptyUsers">
+        <ion-item *ngFor="let user of users" class="transaction-item admin-item">
+          <ion-icon name="person" slot="start"></ion-icon>
           <ion-label>
-            <h2>{{ user.displayName }}</h2>
-            <p>{{ user.email }}</p>
-            <p class="created-date">Criado em: {{ formatDate(user.createdAt) }}</p>
+            <div class="transaction-title">{{ user.displayName }}</div>
+            <div class="transaction-subtitle">{{ user.email }}</div>
+            <div class="created-date">Criado em: {{ formatDate(user.createdAt) }}</div>
           </ion-label>
           <div slot="end" class="user-actions">
             <ion-badge [color]="getRoleColor(user.role)">
@@ -145,72 +150,86 @@
         </ion-item>
       </ion-list>
 
-      <div *ngIf="users.length === 0" class="empty-state">
-        <p>Nenhum usuário cadastrado localmente</p>
-      </div>
-    </ion-card-content>
-  </ion-card>
+      <ng-template #emptyUsers>
+        <div class="empty-state">
+          <p>Nenhum usuário cadastrado localmente</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
 
-  <!-- Modal de Novo/Editar Usuário -->
   <ion-modal [isOpen]="showUserModal" (didDismiss)="showUserModal = false">
     <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ editingUser ? 'Editar' : 'Novo' }} Usuário</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="showUserModal = false">Fechar</ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding">
-        <form (ngSubmit)="saveUser()">
-          <ion-item>
-            <ion-label position="stacked">Nome *</ion-label>
-            <ion-input
-              type="text"
-              [(ngModel)]="newUser.displayName"
-              name="name"
-              placeholder="Nome completo"
-              required
-            ></ion-input>
-          </ion-item>
+      <ion-content class="transaction-modal">
+        <form (ngSubmit)="saveUser()" class="caixa-form transaction-form">
+          <div class="form-header">
+            <div class="header-icon header-icon--admin">
+              <ion-icon name="person-add"></ion-icon>
+            </div>
+            <div class="header-text">
+              <h2>{{ editingUser ? 'Editar' : 'Novo' }} usuário</h2>
+              <p>Configure os dados de acesso</p>
+            </div>
+            <ion-button class="header-close" fill="clear" type="button" (click)="showUserModal = false">
+              Fechar
+            </ion-button>
+          </div>
 
-          <ion-item>
-            <ion-label position="stacked">Email (local) *</ion-label>
-            <ion-input
-              type="text"
-              [(ngModel)]="newUser.email"
-              name="username"
-              placeholder="Nome de usuário local"
-              required
-            ></ion-input>
-          </ion-item>
+          <div class="form-group">
+            <div class="form-label">Nome *</div>
+            <ion-item class="form-item" lines="none">
+              <ion-input
+                type="text"
+                [(ngModel)]="newUser.displayName"
+                name="name"
+                placeholder="Nome completo"
+                required
+              ></ion-input>
+            </ion-item>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Email (local) *</div>
+            <ion-item class="form-item" lines="none">
+              <ion-input
+                type="text"
+                [(ngModel)]="newUser.email"
+                name="username"
+                placeholder="Nome de usuário local"
+                required
+              ></ion-input>
+            </ion-item>
+          </div>
 
           <!-- Removed password input as direct password management is not aligned with new User model and Firebase Auth -->
           <!--
-          <ion-item>
-            <ion-label position="stacked">
+          <div class="form-group">
+            <div class="form-label">
               Senha {{ editingUser ? '(deixe em branco para manter)' : '*' }}
-            </ion-label>
-            <ion-input
-              type="password"
-              [(ngModel)]="newUser.password"
-              name="password"
-              [placeholder]="editingUser ? 'Nova senha (opcional)' : 'Senha'"
-              [required]="!editingUser"
-            ></ion-input>
-          </ion-item>
+            </div>
+            <ion-item class="form-item" lines="none">
+              <ion-input
+                type="password"
+                [(ngModel)]="newUser.password"
+                name="password"
+                [placeholder]="editingUser ? 'Nova senha (opcional)' : 'Senha'"
+                [required]="!editingUser"
+              ></ion-input>
+            </ion-item>
+          </div>
           -->
 
-          <ion-item>
-            <ion-label position="stacked">Tipo de Acesso (local) *</ion-label>
-            <ion-select [(ngModel)]="newUser.role" name="role">
-              <ion-select-option value="user">Usuário</ion-select-option>
-              <ion-select-option value="admin">Administrador</ion-select-option>
-            </ion-select>
-          </ion-item>
+          <div class="form-group">
+            <div class="form-label">Tipo de Acesso (local) *</div>
+            <ion-item class="form-item" lines="none">
+              <ion-select [(ngModel)]="newUser.role" name="role" interface="popover">
+                <ion-select-option value="user">Usuário</ion-select-option>
+                <ion-select-option value="admin">Administrador</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
 
-          <ion-button expand="block" type="submit" class="ion-margin-top">
+          <ion-button expand="block" type="submit" class="submit-button">
             {{ editingUser ? 'Salvar Alterações' : 'Criar Usuário' }}
           </ion-button>
         </form>

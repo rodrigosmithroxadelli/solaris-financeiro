@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -24,6 +24,7 @@ import { addIcons } from 'ionicons';
 import { add, create, trash } from 'ionicons/icons';
 import { CatalogItem } from '../../../../models/catalog.model'; // Corrected import path
 import { CatalogService } from '../../../../services/catalog.service'; // Corrected import path
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-catalog-management',
@@ -54,11 +55,13 @@ export class CatalogManagementPage implements OnInit {
   private catalogService = inject(CatalogService);
   private toastController = inject(ToastController);
   private alertController = inject(AlertController);
+  private destroyRef = inject(DestroyRef);
 
   catalogItems: CatalogItem[] = [];
   isModalOpen = false;
   editingItem: CatalogItem | null = null;
   formItem: Partial<CatalogItem> = {};
+  private hasLoadedItems = false;
 
   constructor() {
     addIcons({ add, create, trash });
@@ -69,9 +72,15 @@ export class CatalogManagementPage implements OnInit {
   }
 
   loadItems() {
-    this.catalogService.getCatalogItems().subscribe((items: CatalogItem[]) => { // Explicitly type items
-      this.catalogItems = items.sort((a: CatalogItem, b: CatalogItem) => a.name.localeCompare(b.name)); // Explicitly type a and b
-    });
+    if (this.hasLoadedItems) {
+      return;
+    }
+    this.hasLoadedItems = true;
+    this.catalogService.getCatalogItems()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((items: CatalogItem[]) => { // Explicitly type items
+        this.catalogItems = items.sort((a: CatalogItem, b: CatalogItem) => a.name.localeCompare(b.name)); // Explicitly type a and b
+      });
   }
 
   openItemModal(item: CatalogItem | null = null) {
@@ -105,6 +114,8 @@ export class CatalogManagementPage implements OnInit {
       await this.catalogService.saveCatalogItem(this.formItem as CatalogItem);
       this.showToast(`Item ${this.editingItem ? 'atualizado' : 'criado'} com sucesso!`, 'success');
       this.closeModal();
+      this.hasLoadedItems = false;
+      this.loadItems();
     } catch (error: any) { // Explicitly type error as any
       console.error('Erro ao salvar item do catálogo:', error);
       this.showToast('Erro ao salvar item.', 'danger');
@@ -127,10 +138,12 @@ export class CatalogManagementPage implements OnInit {
           role: 'destructive',
           handler: async () => {
             try {
-              if (item.id) {
-                await this.catalogService.deleteCatalogItem(item.id);
-                this.showToast('Item excluído com sucesso!', 'success');
-              }
+                if (item.id) {
+                  await this.catalogService.deleteCatalogItem(item.id);
+                  this.showToast('Item excluído com sucesso!', 'success');
+                  this.hasLoadedItems = false;
+                  this.loadItems();
+                }
             } catch (error: any) { // Explicitly type error as any
               console.error('Erro ao excluir item do catálogo:', error);
               this.showToast('Erro ao excluir item.', 'danger');

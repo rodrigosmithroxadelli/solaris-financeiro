@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -24,7 +24,7 @@ import {
 import { FinanceService, PeriodSummary } from '../services/finance.service';
 import { ExportService } from '../services/export.service';
 import { Transaction } from '../models/transaction.model';
-import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { addIcons } from 'ionicons';
 import { download, calendar, barChart, pieChart } from 'ionicons/icons';
 
@@ -57,11 +57,12 @@ import { download, calendar, barChart, pieChart } from 'ionicons/icons';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RelatoriosPage implements OnInit, OnDestroy {
+export class RelatoriosPage implements OnInit {
   financeService = inject(FinanceService);
   private exportService = inject(ExportService);
   private toastController = inject(ToastController);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
 
   periodType: 'dia' | 'semana' | 'mes' = 'mes';
   selectedDate: string = new Date().toISOString();
@@ -72,7 +73,6 @@ export class RelatoriosPage implements OnInit, OnDestroy {
 
   categoryData: { [key: string]: number } = {};
   paymentMethodData: { [key: string]: number } = {};
-  private transactionsSubscription?: Subscription;
 
   // New properties for memoized getters
   categoryEntries: Array<{ category: string; amount: number }> = [];
@@ -86,15 +86,13 @@ export class RelatoriosPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.transactionsSubscription = this.financeService.transactions$.subscribe(data => {
-      this.allTransactions = data;
-      this.processData();
-      this.cdr.detectChanges(); // Manually trigger change detection
-    });
-  }
-
-  ngOnDestroy() {
-    this.transactionsSubscription?.unsubscribe();
+    this.financeService.transactions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.allTransactions = data;
+        this.processData();
+        this.cdr.detectChanges(); // Manually trigger change detection
+      });
   }
 
   processData() {

@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
-import { Firestore, collection, collectionData, addDoc, doc, deleteDoc, query, orderBy, updateDoc } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Firestore, collection, addDoc, doc, deleteDoc, query, orderBy, updateDoc, collectionData } from '@angular/fire/firestore';
+import { Observable, shareReplay } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Transaction } from '../models/transaction.model';
 
@@ -22,34 +22,46 @@ export interface CashFlowSummary {
 })
 export class FinanceService {
   private firestore: Firestore = inject(Firestore); // Injeta o banco de dados
-  private transactionsCollection = collection(this.firestore, 'lancamentos'); // Define a pasta "lancamentos"
-
+  private environmentInjector = inject(EnvironmentInjector);
+  private transactionsCollection = runInInjectionContext(this.environmentInjector, () =>
+    collection(this.firestore, 'lancamentos')
+  ); // Define a pasta "lancamentos"
   // LISTAR (Ouvido Bionico)
   // Essa variável fica "escutando" o banco. Se mudar lá, muda aqui na hora.
-  transactions$: Observable<Transaction[]> = collectionData(
-    query(this.transactionsCollection, orderBy('date', 'desc')), // Ordena do mais recente para o antigo
-    { idField: 'id' } // Pega o ID automático do Firebase
-  ) as Observable<Transaction[]>;
-
-  constructor() {}
+  transactions$: Observable<Transaction[]> = runInInjectionContext(this.environmentInjector, () =>
+    collectionData(
+      query(this.transactionsCollection, orderBy('date', 'desc')),
+      { idField: 'id' }
+    ) as Observable<Transaction[]>
+  ).pipe(shareReplay({ bufferSize: 1, refCount: false }));
 
   // ADICIONAR (Salvar na Nuvem)
   async addTransaction(transaction: Transaction) {
     // Removemos o ID manual porque o Firebase cria um automático e seguro
     const { id, ...data } = transaction; 
-    await addDoc(this.transactionsCollection, data);
+    await runInInjectionContext(this.environmentInjector, () =>
+      addDoc(this.transactionsCollection, data)
+    );
   }
 
   // ATUALIZAR
   async updateTransaction(id: string, transaction: Partial<Transaction>) {
-    const docRef = doc(this.firestore, `lancamentos/${id}`);
-    await updateDoc(docRef, transaction);
+    const docRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, `lancamentos/${id}`)
+    );
+    await runInInjectionContext(this.environmentInjector, () =>
+      updateDoc(docRef, transaction)
+    );
   }
 
   // APAGAR (Deletar da Nuvem)
   async removeTransaction(id: string) {
-    const docRef = doc(this.firestore, `lancamentos/${id}`);
-    await deleteDoc(docRef);
+    const docRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, `lancamentos/${id}`)
+    );
+    await runInInjectionContext(this.environmentInjector, () =>
+      deleteDoc(docRef)
+    );
   }
 
   // Alias for removeTransaction to fix legacy calls
@@ -84,10 +96,13 @@ export class FinanceService {
           endDate.setHours(23, 59, 59, 999);
         }
 
-        return transactions.filter(t => {
-          const transactionDate = new Date(t.date);
-          return transactionDate >= startDate && transactionDate <= endDate;
-        });
+         return transactions.filter(t => {
+           if (t.paymentStatus === 'PENDENTE') {
+             return false;
+           }
+           const transactionDate = new Date(t.date);
+           return transactionDate >= startDate && transactionDate <= endDate;
+         });
       })
     );
   }
@@ -123,4 +138,6 @@ export class FinanceService {
     const correctedDate = new Date(d.getTime() + userTimezoneOffset);
     return new Intl.DateTimeFormat('pt-BR').format(correctedDate);
   }
+
+  // Pagination removed: load all transactions reactively.
 }

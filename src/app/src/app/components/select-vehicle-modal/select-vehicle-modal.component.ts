@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, Input } from '@angular/core';
+import { Component, OnInit, inject, Input, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -21,6 +21,7 @@ import { carSport } from 'ionicons/icons';
 import { Client, Vehicle } from '../../../../models/client.model'; // Corrected import path
 import { ClientService } from '../../../../services/client.service'; // Corrected import path
 import { of, Observable } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-select-vehicle-modal',
@@ -49,9 +50,11 @@ export class SelectVehicleModalComponent implements OnInit {
   private clientService = inject(ClientService);
   private modalCtrl = inject(ModalController);
   private alertCtrl = inject(AlertController);
+  private destroyRef = inject(DestroyRef);
 
   client: Client | null = null;
   vehicles$: Observable<Vehicle[]> = of([]);
+  private hasLoadedClient = false;
 
   constructor() {
     addIcons({ carSport });
@@ -64,10 +67,16 @@ export class SelectVehicleModalComponent implements OnInit {
   }
 
   loadClientAndVehicles() {
-    this.clientService.getClientById(this.clientId).subscribe((client: Client | null) => { // Explicitly type client
-      this.client = client;
-      this.vehicles$ = of(client?.vehicles || []);
-    });
+    if (this.hasLoadedClient) {
+      return;
+    }
+    this.hasLoadedClient = true;
+    this.clientService.getClientById(this.clientId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((client: Client | null) => { // Explicitly type client
+        this.client = client;
+        this.vehicles$ = of(client?.vehicles || []);
+      });
   }
 
   selectVehicle(vehicle: Vehicle) {
@@ -105,6 +114,7 @@ export class SelectVehicleModalComponent implements OnInit {
                 vehicles: [...(this.client.vehicles || []), newVehicle]
               };
               await this.clientService.saveClient(updatedClient);
+              this.hasLoadedClient = false;
               this.loadClientAndVehicles(); // Recarrega os veículos
               return true;
             }

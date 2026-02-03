@@ -35,13 +35,17 @@ export interface OrderItem {
 
 // 3. Pagamento e Financeiro (Regras Críticas)
 export interface Payment {
-  method: 'CASH' | 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD';
+  method: 'CASH' | 'PIX' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BOLETO' | 'TRANSFERENCIA';
   installments: number; // Parcelas
   grossValue: number; // Valor pago pelo cliente
   taxRate: number; // Taxa da maquininha (%)
   netValue: number; // Valor Líquido (gross - taxa)
   dueDate: Timestamp; // Data de recebimento real
 }
+
+export type ServiceStatus = 'AGUARDANDO_ACAO' | 'CONCLUIDA' | 'CANCELADA';
+export type PaymentStatus = 'PENDENTE' | 'PAGO';
+export type ServicePaymentMethod = 'dinheiro' | 'pix' | 'debito' | 'credito' | 'boleto' | 'transferencia';
 
 // 4. A Ordem de Serviço (Entidade Principal)
 export interface ServiceOrder {
@@ -54,7 +58,12 @@ export interface ServiceOrder {
   clientName: string; // Desnormalizado para leitura rápida
   vehicle: Vehicle;
   
-  status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'FINISHED' | 'PAID' | 'CANCELLED';
+  status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'FINISHED' | 'PAID' | 'CANCELLED' | 'AGUARDANDO_ACAO' | 'CONCLUIDA' | 'CANCELADA';
+  serviceStatus?: ServiceStatus;
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: ServicePaymentMethod;
+  serviceValue?: number;
+  linkedTransactionId?: string;
   
   // Checklist Visual (Fotos e Avarias)
   checklist: {

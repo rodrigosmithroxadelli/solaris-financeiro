@@ -1,46 +1,117 @@
-<ion-tabs #tabs (ionTabsDidChange)="onTabChange($event)">
-  <ion-router-outlet></ion-router-outlet>
-  <ion-tab-bar slot="bottom">
-    <ion-tab-button tab="inicio" (click)="selectTab('inicio')">
-      <ion-icon aria-hidden="true" name="stats-chart-outline"></ion-icon>
-      <ion-label>Início</ion-label>
-    </ion-tab-button>
 
-    <ion-tab-button tab="caixa" (click)="selectTab('caixa')">
-      <ion-icon aria-hidden="true" name="wallet"></ion-icon>
-      <ion-label>Caixa</ion-label>
-    </ion-tab-button>
+<ion-header class="dashboard-header dashboard-theme">
 
-    <ion-tab-button tab="catalogo" (click)="selectTab('catalogo')">
-      <ion-icon aria-hidden="true" name="cube-outline"></ion-icon>
-      <ion-label>Catálogo</ion-label>
-    </ion-tab-button>
+  <ion-toolbar>
 
-    <ion-tab-button tab="os" (click)="selectTab('os')">
-      <ion-icon aria-hidden="true" name="document-text-outline"></ion-icon>
-      <ion-label>Ordem de Serviço</ion-label>
-    </ion-tab-button>
+    <div class="header-content">
 
-    <ion-tab-button tab="clients" (click)="selectTab('clients')">
-      <ion-icon aria-hidden="true" name="people-outline"></ion-icon>
-      <ion-label>Clientes</ion-label>
-    </ion-tab-button>
+      <div class="header-left">
 
-    <ion-tab-button tab="relatorios" (click)="selectTab('relatorios')">
-      <ion-icon aria-hidden="true" name="bar-chart"></ion-icon>
-      <ion-label>Relatórios</ion-label>
-    </ion-tab-button>
+        <img src="assets/icon/logotipo-piloto-2.png" alt="Solaris" class="header-logo" />
 
-    <ion-tab-button tab="admin" (click)="selectTab('admin')">
-      <ion-icon aria-hidden="true" name="settings"></ion-icon>
-      <ion-label>Admin</ion-label>
-    </ion-tab-button>
-  </ion-tab-bar>
-</ion-tabs>
+      </div>
 
-<!-- Botão Flutuante Dinâmico -->
+      <div class="header-actions">
+
+        <button class="icon-pill" type="button">
+
+          <ion-icon name="search-outline"></ion-icon>
+
+        </button>
+
+        <button class="icon-button" type="button">
+
+          <ion-icon name="notifications-outline"></ion-icon>
+
+        </button>
+
+        <button class="icon-pill" type="button">
+
+          <ion-icon name="menu-outline"></ion-icon>
+
+        </button>
+
+      </div>
+
+    </div>
+
+    <nav class="quick-nav quick-nav-top">
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'inicio'" (click)="selectTab('inicio')">
+
+        <ion-icon name="home-outline"></ion-icon>
+
+        <span>Painel</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'os'" (click)="selectTab('os')">
+
+        <ion-icon name="construct-outline"></ion-icon>
+
+        <span>OS</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'caixa'" (click)="selectTab('caixa')">
+
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+
+        <span>Caixa</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'catalogo'" (click)="selectTab('catalogo')">
+
+        <ion-icon name="wallet-outline"></ion-icon>
+
+        <span>Catálogo</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'clients'" (click)="selectTab('clients')">
+
+        <ion-icon name="people-outline"></ion-icon>
+
+        <span>Clientes</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'relatorios'" (click)="selectTab('relatorios')">
+
+        <ion-icon name="bar-chart-outline"></ion-icon>
+
+        <span>Relatórios</span>
+
+      </button>
+
+      <button class="quick-nav-item" type="button" *ngIf="isAdmin" [class.active]="activeTab === 'admin'" (click)="selectTab('admin')">
+
+        <ion-icon name="settings"></ion-icon>
+
+        <span>Admin</span>
+
+      </button>
+
+    </nav>
+
+  </ion-toolbar>
+
+</ion-header>
+
+
+
+<ion-router-outlet></ion-router-outlet>
+
+
+
 <ion-fab *ngIf="activeTab === 'caixa'" vertical="bottom" horizontal="end" slot="fixed">
+
   <ion-fab-button (click)="onFabClick()">
+
     <ion-icon name="add"></ion-icon>
+
   </ion-fab-button>
+
 </ion-fab>
+

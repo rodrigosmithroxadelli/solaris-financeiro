@@ -1,30 +1,31 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NavController, ModalController, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonList, IonItem, IonAvatar, IonLabel } from '@ionic/angular/standalone'; // Added ModalController
+import { ModalController, IonButton, IonIcon, IonContent, IonList, IonItem, IonLabel } from '@ionic/angular/standalone';
 import { ClientService } from '../../services/client.service';
-import { AuthService } from '../../services/auth.service';
 import { Client } from '../../models/client.model';
 import { addIcons } from 'ionicons';
-import { add, create } from 'ionicons/icons'; // Added create icon for edit
+import { add, create, peopleOutline } from 'ionicons/icons'; // Added create icon for edit
 import { ClientFormModalComponent } from '../../src/app/components/client-form-modal/client-form-modal.component'; // Import the new modal
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-clients',
   templateUrl: './clients.page.html',
   styleUrls: ['./clients.page.scss'],
   standalone: true,
-  imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon, IonContent, IonList, IonItem, IonAvatar, IonLabel]
+  imports: [CommonModule, FormsModule, IonButton, IonIcon, IonContent, IonList, IonItem, IonLabel]
 })
 export class ClientsPage implements OnInit {
   private clientService = inject(ClientService);
   private modalCtrl = inject(ModalController);
-  private navCtrl = inject(NavController);
+  private destroyRef = inject(DestroyRef);
   
   clients: Client[] = [];
+  private hasLoadedClients = false;
 
   constructor() { 
-    addIcons({ add, create });
+    addIcons({ add, create, peopleOutline });
   }
 
   ngOnInit() {
@@ -32,16 +33,16 @@ export class ClientsPage implements OnInit {
   }
 
   async loadClients() {
+    if (this.hasLoadedClients) {
+      return;
+    }
+    this.hasLoadedClients = true;
     // No need for 'await' here, getClients returns an Observable
-    this.clientService.getClients().subscribe(data => {
-      this.clients = data.sort((a, b) => a.name.localeCompare(b.name));
-    });
-  }
-
-  // Vai para detalhes
-  openClient(client: Client) {
-    // This can be the click action for the whole item
-    this.navCtrl.navigateForward(`/app/client-detail/${client.id}`);
+    this.clientService.getClients()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.clients = data.sort((a, b) => a.name.localeCompare(b.name));
+      });
   }
 
   // Opens modal for adding or editing a client
@@ -59,6 +60,7 @@ export class ClientsPage implements OnInit {
 
     // Reload clients if a save was successful
     if (role === 'save') {
+      this.hasLoadedClients = false;
       this.loadClients();
     }
   }

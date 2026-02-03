@@ -14,7 +14,9 @@
       transition: transform 0.3s ease;
     }
 
-
+    &:hover .logo-image {
+      transform: translateY(-60px);
+    }
   }
 
   .login-section {
@@ -96,24 +98,14 @@
     .action-button {
       text-align: center;
       .login-button {
-        --background: #000; /* Fundo preto */
-        --color: #fff; /* Letra branca */
+        --background: #ffffff;
         width: 100%;
         font-weight: bold;
       }
-      .forgot-password {
+      p {
         margin-top: 15px;
-        a {
-          color: #7b7b7b; /* Cor cinza para o link "Esqueci minha senha" */
-          text-decoration: none;
-          font-size: 0.9rem;
-        }
-      }
-      /* Estilizando o botão "Registrar" (fill="clear") */
-      ion-button[fill="clear"] {
-        --color: #7b7b7b; /* Cor cinza para o texto do botão "Registrar" */
-        font-weight: normal;
-        margin-top: 10px; /* Ajuste o espaçamento conforme necessário */
+        font-size: 1rem;
+        color: #000000;
       }
     }
   }
@@ -148,18 +140,4 @@
 .logo-image.error-animation {
   animation: errorShake 0.5s ease-in-out forwards;
   filter: hue-rotate(-20deg) saturate(200%) brightness(80%); /* Deixa avermelhado e mais escuro */
-}
-
-/* Estilos do Footer */
-ion-footer {
-  ion-toolbar {
-    --background: transparent; /* Fundo transparente */
-    --border-color: transparent; /* Remove a borda */
-    .footer-text {
-      color: #7b7b7b; /* Cor cinza para o texto do rodapé */
-      text-align: center;
-      width: 100%;
-      font-size: 0.8rem;
-    }
-  }
 }

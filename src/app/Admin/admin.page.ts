@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -29,6 +29,7 @@ import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 import { User } from '../models/user.model';
 import { firstValueFrom } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { addIcons } from 'ionicons';
 import { personAdd, create, trash, logOut, shieldCheckmark, person, lockClosed, business, settings } from 'ionicons/icons';
 import { CompanyProfile } from '../models/company-profile.model'; // Import CompanyProfile model
@@ -70,6 +71,7 @@ export class AdminPage implements OnInit {
   private alertController = inject(AlertController);
   private toastController = inject(ToastController);
   private companyProfileService = inject(CompanyProfileService); // Inject CompanyProfileService
+  private destroyRef = inject(DestroyRef);
 
   users: User[] = [];
   currentUser: User | null = null;
@@ -96,29 +98,33 @@ export class AdminPage implements OnInit {
   }
 
   ngOnInit() {
-    this.authService.currentUser$.subscribe(user => {
-      this.currentUser = user;
-    });
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => {
+        this.currentUser = user;
+      });
     this.loadUsers();
     this.loadCompanyProfile(); // Load company profile when the page initializes
   }
 
   loadCompanyProfile() {
-    this.companyProfileService.getCompanyProfile().subscribe(profile => {
-      if (profile) {
-        this.currentCompanyProfile = profile;
-        // Populate the form with existing data
-        this.companyProfileForm = { ...profile };
-      } else {
-        // If no profile exists, ensure form is empty
-        this.companyProfileForm = {
-          name: '',
-          contactPhone: '',
-          contactEmail: '',
-          address: ''
-        };
-      }
-    });
+    this.companyProfileService.getCompanyProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(profile => {
+        if (profile) {
+          this.currentCompanyProfile = profile;
+          // Populate the form with existing data
+          this.companyProfileForm = { ...profile };
+        } else {
+          // If no profile exists, ensure form is empty
+          this.companyProfileForm = {
+            name: '',
+            contactPhone: '',
+            contactEmail: '',
+            address: ''
+          };
+        }
+      });
   }
 
   async saveCompanyProfile() {

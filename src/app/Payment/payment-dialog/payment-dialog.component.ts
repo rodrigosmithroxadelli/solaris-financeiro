@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, Input, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, Input, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
@@ -17,6 +17,7 @@ import {
   ModalController
 } from '@ionic/angular/standalone';
 import { Payment } from '../../models/service-order.model'; // Import the Payment interface
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-payment-dialog',
@@ -42,7 +43,7 @@ import { Payment } from '../../models/service-order.model'; // Import the Paymen
   styleUrls: ['./payment-dialog.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PaymentDialogComponent implements OnInit {
+export class PaymentDialogComponent implements OnInit, OnDestroy {
   @Input() pendingAmount!: number;
 
   private modalCtrl = inject(ModalController);
@@ -50,6 +51,7 @@ export class PaymentDialogComponent implements OnInit {
   
   paymentForm!: FormGroup;
   isCardPayment = signal(false);
+  private methodSubscription?: Subscription;
 
   constructor() {}
 
@@ -61,10 +63,14 @@ export class PaymentDialogComponent implements OnInit {
       taxRate: [{ value: 0, disabled: true }, Validators.min(0)]
     });
 
-    this.paymentForm.get('method')?.valueChanges.subscribe(method => {
+    this.methodSubscription = this.paymentForm.get('method')?.valueChanges.subscribe(method => {
       this.isCardPayment.set(method === 'CREDIT_CARD' || method === 'DEBIT_CARD');
       this.toggleCardPaymentValidators();
     });
+  }
+
+  ngOnDestroy() {
+    this.methodSubscription?.unsubscribe();
   }
 
   toggleCardPaymentValidators() {

@@ -105,7 +105,9 @@ export class ExportService {
       'pix': 'PIX',
       'dinheiro': 'Dinheiro',
       'cartao_credito': 'Cartão de Crédito',
-      'cartao_debito': 'Cartão de Débito'
+      'cartao_debito': 'Cartão de Débito',
+      'boleto': 'Boleto',
+      'transferencia': 'Transferência'
     };
     return labels[method] || method;
   }

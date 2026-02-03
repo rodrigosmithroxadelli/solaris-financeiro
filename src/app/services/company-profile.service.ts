@@ -1,6 +1,6 @@
-import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, docData, setDoc, updateDoc, collection } from '@angular/fire/firestore';
-import { Observable, firstValueFrom, of, switchMap } from 'rxjs';
+import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
+import { Firestore, doc, setDoc, updateDoc, collection, getDoc } from '@angular/fire/firestore';
+import { Observable, firstValueFrom, of, switchMap, shareReplay, from } from 'rxjs';
 import { CompanyProfile } from '../models/company-profile.model';
 import { AuthService } from './auth.service';
 
@@ -10,24 +10,30 @@ import { AuthService } from './auth.service';
 export class CompanyProfileService {
   private firestore = inject(Firestore);
   private authService = inject(AuthService);
+  private environmentInjector = inject(EnvironmentInjector);
 
   private readonly COMPANY_PROFILE_COLLECTION = 'companyProfiles'; // Coleção de nível superior para perfis de empresa
+  private companyProfileCache$?: Observable<CompanyProfile | null>;
 
   /**
    * Recupera o perfil da empresa para o tenant atual.
    * O ID do documento do perfil da empresa é o próprio tenantId.
    */
   getCompanyProfile(): Observable<CompanyProfile | null> {
-    return this.authService.currentUser$.pipe(
+    if (this.companyProfileCache$) {
+      return this.companyProfileCache$;
+    }
+    this.companyProfileCache$ = this.authService.currentUser$.pipe(
       switchMap(user => {
         if (!user || !user.tenantId) {
           console.warn('CompanyProfileService: Não foi possível obter o perfil da empresa, usuário ou tenantId ausente.');
           return of(null);
         }
-        const profileDocRef = doc(this.firestore, this.COMPANY_PROFILE_COLLECTION, user.tenantId);
-        return docData(profileDocRef, { idField: 'id' }) as Observable<CompanyProfile | null>;
-      })
+        return from(this.getCompanyProfileOnce(user.tenantId));
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+    return this.companyProfileCache$;
   }
 
   /**
@@ -51,15 +57,33 @@ export class CompanyProfileService {
     }
 
     // Usa o tenantId como o ID do documento
-    const profileDocRef = doc(this.firestore, this.COMPANY_PROFILE_COLLECTION, tenantId);
+    const profileDocRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, this.COMPANY_PROFILE_COLLECTION, tenantId)
+    );
 
     try {
       // setDoc criará o documento se não existir ou o substituirá se existir.
-      await setDoc(profileDocRef, { ...profile, tenantId: tenantId });
+      await runInInjectionContext(this.environmentInjector, () =>
+        setDoc(profileDocRef, { ...profile, tenantId: tenantId })
+      );
+      this.companyProfileCache$ = undefined;
       console.log('CompanyProfileService: Perfil da empresa salvo com sucesso para o tenant:', tenantId);
     } catch (error) {
       console.error('CompanyProfileService: Erro ao salvar o perfil da empresa:', error);
       throw error;
     }
+  }
+
+  private async getCompanyProfileOnce(tenantId: string): Promise<CompanyProfile | null> {
+    const profileDocRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, this.COMPANY_PROFILE_COLLECTION, tenantId)
+    );
+    const profileDocSnap = await runInInjectionContext(this.environmentInjector, () =>
+      getDoc(profileDocRef)
+    );
+    if (profileDocSnap.exists()) {
+      return { id: profileDocSnap.id, ...(profileDocSnap.data() as CompanyProfile) };
+    }
+    return null;
   }
 }

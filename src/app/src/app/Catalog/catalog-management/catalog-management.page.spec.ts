@@ -39,7 +39,7 @@ describe('CatalogManagementPage', () => {
     }))
   };
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(waitForAsync(async () => {
     TestBed.configureTestingModule({
       imports: [IonicModule.forRoot(), CatalogManagementPage],
       providers: [
@@ -54,6 +54,7 @@ describe('CatalogManagementPage', () => {
     fixture = TestBed.createComponent(CatalogManagementPage);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    await fixture.whenStable();
   }));
 
   it('should create', () => {

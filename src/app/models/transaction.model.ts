@@ -4,7 +4,9 @@ export interface Transaction {
   title: string;
   amount: number;
   category: string;
-  paymentMethod: 'pix' | 'dinheiro' | 'cartao_credito' | 'cartao_debito';
+  paymentMethod: 'pix' | 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'boleto' | 'transferencia';
+  paymentStatus?: 'PENDENTE' | 'PAGO';
+  serviceOrderId?: string;
   date: string; // ISO String
   description?: string;
   clientName?: string;

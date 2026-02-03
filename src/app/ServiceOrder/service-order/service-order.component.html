@@ -1,142 +1,70 @@
-<ion-header [translucent]="true">
-  <ion-toolbar color="primary">
-    <ion-title>
-      Ordem de Serviço #{{ currentOrder().number || 'Nova' }}
-    </ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="handleSaveOrder()">
-        <ion-icon slot="icon-only" name="save"></ion-icon>
-      </ion-button>
-      <ion-button (click)="handleResetOrder()">
-        <ion-icon slot="icon-only" name="refresh"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<ion-content [fullscreen]="true" class="caixa-content">
+  <ion-grid class="caixa-form">
+    <ion-row>
+      <ion-col size="12">
+        <div class="form-header">
+          <div class="header-icon">
+            <ion-icon name="cash-outline"></ion-icon>
+          </div>
+          <div class="header-text">
+            <h2>Ordens de Serviço</h2>
+            <p>Gerencie pagamentos e status</p>
+          </div>
+        </div>
+      </ion-col>
+    </ion-row>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-  <!-- Saved Orders List -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Ordens de Serviço Salvas</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-list>
-        <ion-item *ngFor="let order of allOrders" button (click)="selectOrder(order)">
-          <ion-label>
-            <h2>{{ order.clientName }}</h2>
-            <p>{{ order.vehicle.plate }} - {{ order.status }}</p>
-          </ion-label>
-          <ion-note slot="end" color="primary">{{ order.financial.totalPrice | currency:'BRL' }}</ion-note>
-        </ion-item>
-        <ion-item *ngIf="allOrders.length === 0">
-          <ion-label class="ion-text-center">Nenhuma ordem de serviço salva.</ion-label>
-        </ion-item>
-      </ion-list>
-    </ion-card-content>
-  </ion-card>
+    <ion-row>
+      <ion-col size="12">
+        <div class="toggle-row">
+          <ion-toggle [(ngModel)]="onlyPending" (ionChange)="onPendingToggle()"></ion-toggle>
+          <span>Mostrar apenas pendentes</span>
+        </div>
+      </ion-col>
+    </ion-row>
 
-  <!-- Client and Vehicle Section -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Cliente e Veículo</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-item button="true" (click)="openClientSelectionModal()">
-        <ion-icon name="person-circle-outline" slot="start"></ion-icon>
-        <ion-label>
-          <h2>{{ currentOrder().clientName || 'Selecione um cliente...' }}</h2>
-        </ion-label>
-      </ion-item>
-      <ion-item button="true" (click)="openVehicleSelectionModal()" [disabled]="!currentOrder().clientId">
-        <ion-icon name="car-outline" slot="start"></ion-icon>
-        <ion-label>
-          <h2>{{ currentOrder().vehicle.plate || 'Selecione um veículo...' }}</h2>
-          <p>{{ currentOrder().vehicle.brand }} {{ currentOrder().vehicle.model }}</p>
-        </ion-label>
-      </ion-item>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- Items Section -->
-  <ion-card>
-    <ion-card-header class="ion-justify-content-between ion-align-items-center">
-      <ion-card-title>Itens</ion-card-title>
-      <ion-button (click)="openSelectItemModal()" fill="clear" size="small">
-        <ion-icon slot="icon-only" name="add-circle"></ion-icon>
-      </ion-button>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-list *ngIf="currentOrder().items.length > 0; else emptyItems">
-        <ion-item *ngFor="let item of currentOrder().items">
-          <ion-grid>
-            <ion-row class="ion-align-items-center">
-              <ion-col size="5">
-                <ion-label>
-                  <h3>{{ item.name }}</h3>
-                  <p>{{ item.unitPrice | currency:'BRL' }}</p>
-                </ion-label>
-              </ion-col>
-              <ion-col size="3">
-                <ion-input
-                  type="number"
-                  label="Qtd."
-                  labelPlacement="floating"
-                  [value]="item.quantity"
-                  (ionChange)="handleUpdateQuantity(item.id, $event)"
-                ></ion-input>
-              </ion-col>
-              <ion-col size="3" class="ion-text-end">
-                <strong>{{ item.total | currency:'BRL' }}</strong>
-              </ion-col>
-              <ion-col size="1">
-                <ion-button (click)="handleRemoveItem(item.id)" fill="clear" color="danger">
-                  <ion-icon slot="icon-only" name="trash"></ion-icon>
+    <ion-row>
+      <ion-col size="12">
+        <div class="transactions-section">
+          <h3>OS aguardando ação ({{ allOrders.length }})</h3>
+          <p>Atualize status de pagamento ou cancele</p>
+          <ion-list class="transactions-list" *ngIf="allOrders.length > 0; else emptyOrders">
+            <ion-item *ngFor="let order of allOrders" class="transaction-item">
+              <ion-icon name="cash-outline" slot="start"></ion-icon>
+              <ion-label>
+                <div class="transaction-title">{{ order.clientName || 'Sem cliente' }}</div>
+                <div class="transaction-subtitle">
+                  OS {{ getServiceStatusLabel(order) }} • {{ getPaymentMethodLabel(order) }}
+                </div>
+              </ion-label>
+              <div slot="end" class="transaction-end">
+                <ion-badge [color]="order.paymentStatus === 'PAGO' ? 'success' : 'warning'">
+                  {{ order.paymentStatus || 'PENDENTE' }}
+                </ion-badge>
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  [color]="order.paymentStatus === 'PAGO' ? 'success' : 'medium'"
+                  (click)="togglePaymentStatus(order, { detail: { checked: order.paymentStatus !== 'PAGO' } })"
+                >
+                  {{ order.paymentStatus === 'PAGO' ? 'PAGO' : 'PENDENTE' }}
                 </ion-button>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-item>
-      </ion-list>
-      <ng-template #emptyItems>
-        <p class="ion-text-center ion-padding-top">Nenhum item adicionado.</p>
-      </ng-template>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- Financial Summary Section -->
-  <ion-card>
-    <ion-card-header>
-      <ion-card-title>Resumo Financeiro</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-grid>
-        <ion-row>
-          <ion-col>Subtotal</ion-col>
-          <ion-col class="ion-text-end">{{ subtotal() | currency:'BRL' }}</ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>Desconto Global</ion-col>
-          <ion-col class="ion-text-end">- {{ currentOrder().financial.globalDiscount | currency:'BRL' }}</ion-col>
-        </ion-row>
-        <ion-row class="total-row">
-          <ion-col><strong>Total</strong></ion-col>
-          <ion-col class="ion-text-end"><strong>{{ totalPrice() | currency:'BRL' }}</strong></ion-col>
-        </ion-row>
-        <hr>
-        <ion-row>
-          <ion-col>Total Pago</ion-col>
-          <ion-col class="ion-text-end">{{ totalPaid() | currency:'BRL' }}</ion-col>
-        </ion-row>
-        <ion-row class="balance-due-row">
-          <ion-col><strong>Saldo Devedor</strong></ion-col>
-          <ion-col class="ion-text-end"><strong>{{ balanceDue() | currency:'BRL' }}</strong></ion-col>
-        </ion-row>
-      </ion-grid>
-      <ion-button expand="block" (click)="handleCheckout()" class="ion-margin-top" [disabled]="balanceDue() <= 0">
-        <ion-icon name="wallet-outline" slot="start"></ion-icon>
-        Pagar
-      </ion-button>
-    </ion-card-content>
-  </ion-card>
+                <ion-button fill="clear" size="small" (click)="setServiceStatus(order, 'CONCLUIDA')">
+                  <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+                </ion-button>
+                <ion-button fill="clear" color="danger" size="small" (click)="confirmDeleteOrder(order)">
+                  <ion-icon name="trash" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+            </ion-item>
+          </ion-list>
+          <ng-template #emptyOrders>
+            <div class="empty-state">
+              <p>Nenhuma ordem aguardando ação</p>
+            </div>
+          </ng-template>
+        </div>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
 </ion-content>

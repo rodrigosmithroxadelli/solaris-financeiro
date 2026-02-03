@@ -1,8 +1,9 @@
-import { Injectable, signal, computed, effect, inject } from '@angular/core';
+import { Injectable, signal, computed, effect, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { ServiceOrder, OrderItem, Payment, Vehicle } from '../models/service-order.model';
-import { Firestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc, query, where, Timestamp, collectionData } from '@angular/fire/firestore';
-import { Observable, of } from 'rxjs';
+import { Firestore, collection, doc, addDoc, updateDoc, deleteDoc, getDoc, query, Timestamp, getDocs, limit, startAfter, orderBy } from '@angular/fire/firestore';
+import { Observable, of, shareReplay, from } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -12,6 +13,11 @@ export class OrderManagerService {
   private readonly ORDERS_COLLECTION = 'serviceOrders';
 
   private firestore = inject(Firestore);
+  private environmentInjector = inject(EnvironmentInjector);
+  private ordersCache = new Map<string, Observable<ServiceOrder[]>>();
+  private readonly PAGE_SIZE = 20;
+  private ordersLastDocByTenant = new Map<string, QueryDocumentSnapshot<DocumentData> | null>();
+  private ordersHasMoreByTenant = new Map<string, boolean>();
 
   currentOrder = signal<ServiceOrder>({
     tenantId: '',
@@ -41,12 +47,18 @@ export class OrderManagerService {
       console.error('OrderManagerService: Cannot get orders, tenantId is missing.');
       return of([]);
     }
+    const cached = this.ordersCache.get(tenantId);
+    if (cached) {
+      void this.loadNextOrdersPage(tenantId);
+      return cached;
+    }
     console.log(`[OrderManagerService] getting orders for tenant: ${tenantId}`);
-    const ordersCollectionRef = collection(this.firestore, this.TENANT_COLLECTION, tenantId, this.ORDERS_COLLECTION);
-    const q = query(ordersCollectionRef);
-    return (collectionData(q, { idField: 'id' }) as Observable<ServiceOrder[]>).pipe(
-      tap(orders => console.log('[OrderManagerService] Orders received from Firestore:', orders))
+    const orders$ = from(this.loadNextOrdersPage(tenantId)).pipe(
+      tap(orders => console.log('[OrderManagerService] Orders received from Firestore:', orders)),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+    this.ordersCache.set(tenantId, orders$);
+    return orders$;
   }
 
   setCurrentOrder(order: ServiceOrder) {
@@ -103,18 +115,29 @@ export class OrderManagerService {
       return;
     }
 
-    const ordersCollection = collection(this.firestore, this.TENANT_COLLECTION, order.tenantId, this.ORDERS_COLLECTION);
+    const ordersCollection = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.TENANT_COLLECTION, order.tenantId, this.ORDERS_COLLECTION)
+    );
 
     try {
       if (order.id) {
-        const docRef = doc(ordersCollection, order.id);
-        await updateDoc(docRef, { ...order, timestamps: { ...order.timestamps, finished: Timestamp.now() } });
+        const docRef = runInInjectionContext(this.environmentInjector, () =>
+          doc(ordersCollection, order.id)
+        );
+        await runInInjectionContext(this.environmentInjector, () =>
+          updateDoc(docRef, { ...order, timestamps: { ...order.timestamps, finished: Timestamp.now() } })
+        );
         console.log('Order updated successfully:', order.id);
       } else {
-        const newDocRef = await addDoc(ordersCollection, { ...order, timestamps: { ...order.timestamps, created: Timestamp.now() } });
+        const newDocRef = await runInInjectionContext(this.environmentInjector, () =>
+          addDoc(ordersCollection, { ...order, timestamps: { ...order.timestamps, created: Timestamp.now() } })
+        );
         this.currentOrder.update(prevOrder => ({ ...prevOrder, id: newDocRef.id }));
         console.log('New order created successfully with ID:', newDocRef.id);
       }
+      this.ordersCache.delete(order.tenantId);
+      this.ordersLastDocByTenant.delete(order.tenantId);
+      this.ordersHasMoreByTenant.delete(order.tenantId);
       return true;
     } catch (error) {
       console.error('Error saving order:', error);
@@ -127,9 +150,13 @@ export class OrderManagerService {
       console.error('Cannot load order: tenantId is missing.');
       return;
     }
-    const docRef = doc(this.firestore, this.TENANT_COLLECTION, tenantId, this.ORDERS_COLLECTION, orderId);
+    const docRef = runInInjectionContext(this.environmentInjector, () =>
+      doc(this.firestore, this.TENANT_COLLECTION, tenantId, this.ORDERS_COLLECTION, orderId)
+    );
     try {
-      const docSnap = await getDoc(docRef);
+      const docSnap = await runInInjectionContext(this.environmentInjector, () =>
+        getDoc(docRef)
+      );
       if (docSnap.exists()) {
         const loadedOrder = docSnap.data() as ServiceOrder;
         this.setCurrentOrder({ ...loadedOrder, id: docSnap.id });
@@ -142,5 +169,31 @@ export class OrderManagerService {
       console.error('Error loading order:', error);
       return false;
     }
+  }
+
+  private async loadNextOrdersPage(tenantId: string): Promise<ServiceOrder[]> {
+    const hasMore = this.ordersHasMoreByTenant.get(tenantId) ?? true;
+    if (!hasMore) {
+      return [];
+    }
+    const ordersCollectionRef = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, this.TENANT_COLLECTION, tenantId, this.ORDERS_COLLECTION)
+    );
+    const lastDoc = this.ordersLastDocByTenant.get(tenantId) ?? null;
+    const constraints: Array<ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
+      orderBy('__name__'),
+      limit(this.PAGE_SIZE)
+    ];
+    if (lastDoc) {
+      constraints.push(startAfter(lastDoc));
+    }
+    const q = query(ordersCollectionRef, ...constraints);
+    const snapshot = await runInInjectionContext(this.environmentInjector, () =>
+      getDocs(q)
+    );
+    const newLastDoc = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : lastDoc;
+    this.ordersLastDocByTenant.set(tenantId, newLastDoc ?? null);
+    this.ordersHasMoreByTenant.set(tenantId, snapshot.docs.length === this.PAGE_SIZE);
+    return snapshot.docs.map(docSnap => ({ id: docSnap.id, ...(docSnap.data() as ServiceOrder) }));
   }
 }

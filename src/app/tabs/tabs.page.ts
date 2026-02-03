@@ -1,10 +1,13 @@
-import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, EnvironmentInjector, inject, OnInit, ViewChild, ChangeDetectorRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel, IonRouterOutlet, IonFab, IonFabButton } from '@ionic/angular/standalone';
+import { IonIcon, IonRouterOutlet, IonFab, IonFabButton, IonHeader, IonToolbar } from '@ionic/angular/standalone';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { statsChartOutline, wallet, cubeOutline, documentTextOutline, peopleOutline, barChart, settings, add } from 'ionicons/icons';
+import { statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, chatbubbleEllipsesOutline } from 'ionicons/icons';
+import { AuthService } from '../services/auth.service';
+import { User } from '../models/user.model';
 import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CaixaPage } from '../Caixa/caixa.page';
 
 @Component({
@@ -12,13 +15,9 @@ import { CaixaPage } from '../Caixa/caixa.page';
   templateUrl: 'tabs.page.html',
   styleUrls: ['tabs.page.scss'],
   standalone: true,
-  imports: [IonFabButton, IonFab, 
+  imports: [IonToolbar, IonHeader, IonFabButton, IonFab, 
     CommonModule,
-    IonTabs,
-    IonTabBar,
-    IonTabButton,
     IonIcon,
-    IonLabel,
     IonRouterOutlet,
     RouterModule
   ],
@@ -28,10 +27,13 @@ export class TabsPage implements OnInit {
   public environmentInjector = inject(EnvironmentInjector);
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
+  private authService = inject(AuthService);
   public activeTab = 'inicio';
+  public isAdmin = false;
 
   constructor() {
-    addIcons({ statsChartOutline, wallet, cubeOutline, documentTextOutline, peopleOutline, barChart, settings, add });
+    addIcons({ statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, chatbubbleEllipsesOutline });
   }
 
   onFabClick() {
@@ -48,10 +50,24 @@ export class TabsPage implements OnInit {
     }
   }
 
+  goBack() {
+    this.router.navigate(['/tabs/inicio']);
+  }
+
   ngOnInit() {
+    this.authService.currentUser$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((user: User | null) => {
+        this.isAdmin = user?.role === 'admin';
+        this.cdr.detectChanges();
+      });
+
     // Monitor route changes to manage page visibility
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(
+        filter(event => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe((event: any) => {
         const urlSegments = event.urlAfterRedirects.split('/');
         const newTab = urlSegments[urlSegments.length - 1];

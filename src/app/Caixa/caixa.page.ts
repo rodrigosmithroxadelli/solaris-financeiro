@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, HostListener, DestroyRef } from '@angular/core';
 import { IonicModule, NavController, ToastController, AlertController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,16 +9,10 @@ import {
   IonContent,
   IonButton,
   IonIcon,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
   IonItem,
   IonLabel,
   IonList,
   IonBadge,
-  IonFab,
-  IonFabButton,
   IonRefresher,
   IonRefresherContent,
   IonSearchbar,
@@ -29,14 +23,17 @@ import {
   IonSelectOption,
   IonInput,
   IonTextarea,
-  IonButtons
+  IonButtons,
+  IonToggle
 } from '@ionic/angular/standalone';
 import { FinanceService, CashFlowSummary } from '../services/finance.service';
+import { SalesService } from '../services/sales.service';
 import { Transaction, CATEGORIAS_SOLARIS } from '../models/transaction.model';
 
 import { Subscription } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { addIcons } from 'ionicons';
-import { add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, close, checkmark } from 'ionicons/icons';
+import { add, create, trash, arrowUp, arrowDown, close, checkmark, cashOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-caixa',
@@ -56,16 +53,10 @@ import { add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, 
     IonContent,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
     IonItem,
     IonLabel,
     IonList,
     IonBadge,
-    IonFab,
-    IonFabButton,
     IonRefresher,
     IonRefresherContent,
     IonSearchbar,
@@ -76,20 +67,24 @@ import { add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, 
     IonSelectOption,
     IonInput,
     IonTextarea,
-    IonButtons
+    IonButtons,
+    IonToggle
   ]
 })
 export class CaixaPage implements OnInit, OnDestroy {
   financeService = inject(FinanceService);
+  private salesService = inject(SalesService);
   private navCtrl = inject(NavController);
   private toastController = inject(ToastController);
   private alertController = inject(AlertController);
+  private destroyRef = inject(DestroyRef);
 
   transactions: Transaction[] = [];
   filteredTransactions: Transaction[] = [];
   summary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
   searchTerm: string = '';
-  selectedDate: string = '';
+  selectedDate: string = new Date().toISOString();
+  onlyEntries = false;
   private transactionsSubscription?: Subscription;
 
   // Properties for the "Add Transaction" modal
@@ -98,7 +93,7 @@ export class CaixaPage implements OnInit, OnDestroy {
   title: string = '';
   amount: number | null = null;
   category: string = '';
-  paymentMethod: 'pix' | 'dinheiro' | 'cartao_credito' | 'cartao_debito' = 'dinheiro';
+  paymentMethod: Transaction['paymentMethod'] = 'dinheiro';
   date: string = new Date().toISOString();
   description: string = '';
   clientName: string = '';
@@ -110,15 +105,18 @@ export class CaixaPage implements OnInit, OnDestroy {
 
 
   constructor() {
-    addIcons({ add, create, trash, arrowUp, arrowDown, calendar, personCircleOutline, close, checkmark });
+    addIcons({ add, create, trash, arrowUp, arrowDown, close, checkmark, cashOutline });
   }
 
   ngOnInit() {
-    this.transactionsSubscription = this.financeService.transactions$.subscribe(data => {
-      this.transactions = data;
-      this.calculateSummary();
-      this.applyFilters();
-    });
+    this.transactionsSubscription = this.financeService.transactions$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(data => {
+        this.transactions = data;
+        this.calculateSummary();
+        this.applyFilters();
+      });
+
   }
 
   ngOnDestroy() {
@@ -140,9 +138,12 @@ export class CaixaPage implements OnInit, OnDestroy {
   }
 
   // Methods for "Add Transaction" modal
-  openAddTransactionModal() {
+  openAddTransactionModal(type?: 'entrada' | 'saida') {
     this.isEditMode = false;
     this.resetTransactionForm();
+    if (type) {
+      this.type = type;
+    }
     this.showAddTransactionModal = true;
   }
 
@@ -194,6 +195,8 @@ export class CaixaPage implements OnInit, OnDestroy {
     { value: 'dinheiro', label: 'Dinheiro' },
     { value: 'cartao_credito', label: 'Cartão de Crédito' },
     { value: 'cartao_debito', label: 'Cartão de Débito' },
+    { value: 'boleto', label: 'Boleto' },
+    { value: 'transferencia', label: 'Transferência' },
   ];
 
   async saveTransaction() {
@@ -214,6 +217,10 @@ export class CaixaPage implements OnInit, OnDestroy {
       await this.showToast('Por favor, selecione uma data', 'warning');
       return;
     }
+    if (!this.paymentMethod) {
+      await this.showToast('Por favor, selecione um método de pagamento', 'warning');
+      return;
+    }
 
     const transactionData: Partial<Transaction> = {
       type: this.type,
@@ -221,6 +228,7 @@ export class CaixaPage implements OnInit, OnDestroy {
       amount: this.amount,
       category: this.category,
       paymentMethod: this.paymentMethod,
+      paymentStatus: 'PENDENTE',
       date: this.date,
       description: this.description?.trim() || '',
       clientName: this.clientName?.trim() || '',
@@ -233,8 +241,24 @@ export class CaixaPage implements OnInit, OnDestroy {
         await this.financeService.updateTransaction(this.editingTransactionId, transactionData);
         await this.showToast('Transação atualizada com sucesso!', 'success');
       } else {
-        await this.financeService.addTransaction(transactionData as Transaction);
-        await this.showToast('Transação adicionada com sucesso!', 'success');
+        const saleInput = {
+          title: transactionData.title!,
+          amount: transactionData.amount!,
+          category: transactionData.category!,
+          paymentMethod: transactionData.paymentMethod!,
+          date: transactionData.date!,
+          description: transactionData.description,
+          clientName: transactionData.clientName,
+          clientPhone: transactionData.clientPhone,
+          clientAddress: transactionData.clientAddress
+        };
+        await new Promise<void>((resolve, reject) => {
+          this.salesService.createServiceSale(saleInput).subscribe({
+            next: () => resolve(),
+            error: (err) => reject(err)
+          });
+        });
+        await this.showToast('Venda registrada com sucesso!', 'success');
       }
       this.showAddTransactionModal = false;
     } catch (error) {
@@ -315,6 +339,10 @@ export class CaixaPage implements OnInit, OnDestroy {
       });
     }
 
+    if (this.onlyEntries) {
+      filtered = filtered.filter(t => t.type === 'entrada');
+    }
+
     // Ordenar por data (mais recente primeiro)
     filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
@@ -335,6 +363,10 @@ export class CaixaPage implements OnInit, OnDestroy {
 
   formatDate(date: string): string {
     return this.financeService.formatDate(date);
+  }
+
+  goBack() {
+    this.navCtrl.back();
   }
 
   private async showToast(message: string, color: 'success' | 'danger' | 'warning') {

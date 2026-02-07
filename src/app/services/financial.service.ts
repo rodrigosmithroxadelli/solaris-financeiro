@@ -1,7 +1,8 @@
 import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, collectionData, query, orderBy, Timestamp } from '@angular/fire/firestore';
-import { Observable, shareReplay } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, shareReplay, of } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
 export type FinancialType = 'entrada' | 'saida';
 export type PaymentMethod = 'pix' | 'credito' | 'debito' | 'dinheiro' | 'boleto' | 'transferencia';
@@ -22,28 +23,50 @@ export interface FinancialRecord {
 export class FinancialService {
   private firestore = inject(Firestore);
   private environmentInjector = inject(EnvironmentInjector);
+  private authService = inject(AuthService);
   private readonly COLLECTION = 'lancamentos';
+  private collectionByTenant = new Map<string, ReturnType<typeof collection>>();
 
-  private records$ = runInInjectionContext(this.environmentInjector, () => {
-    const collectionRef = collection(this.firestore, this.COLLECTION);
-    const q = query(collectionRef, orderBy('date', 'desc'));
-    return collectionData(q, { idField: 'id' });
-  }).pipe(
-    map(records => (records as Array<{
-      id?: string;
-      amount?: number;
-      date?: string;
-      type?: 'entrada' | 'saida';
-       paymentMethod?: string;
-       paymentStatus?: PaymentStatus;
-    }>).map(record => ({
-      id: record.id,
-      valor: record.amount ?? 0,
-      data: record.date ? Timestamp.fromDate(new Date(record.date)) : Timestamp.fromDate(new Date(0)),
-      tipo: record.type === 'saida' ? 'saida' : 'entrada',
-      metodoPagamento: this.mapPaymentMethod(record.paymentMethod),
-      statusPagamento: record.paymentStatus
-    })))
+  private getCollectionRef(tenantId: string) {
+    const cached = this.collectionByTenant.get(tenantId);
+    if (cached) {
+      return cached;
+    }
+    const ref = runInInjectionContext(this.environmentInjector, () =>
+      collection(this.firestore, 'empresas', tenantId, this.COLLECTION)
+    );
+    this.collectionByTenant.set(tenantId, ref);
+    return ref;
+  }
+
+  private records$ = this.authService.currentUser$.pipe(
+    switchMap(user => {
+      if (!user?.tenantId) {
+        console.error('FinancialService: usuário ou tenantId ausente.');
+        return of([] as FinancialRecord[]);
+      }
+      const collectionRef = this.getCollectionRef(user.tenantId);
+      const q = query(collectionRef, orderBy('date', 'desc'));
+      return runInInjectionContext(this.environmentInjector, () =>
+        collectionData(q, { idField: 'id' })
+      ).pipe(
+        map(records => (records as Array<{
+          id?: string;
+          amount?: number;
+          date?: string;
+          type?: 'entrada' | 'saida';
+          paymentMethod?: string;
+          paymentStatus?: PaymentStatus;
+        }>).map(record => ({
+          id: record.id,
+          valor: record.amount ?? 0,
+          data: record.date ? Timestamp.fromDate(new Date(record.date)) : Timestamp.fromDate(new Date(0)),
+          tipo: record.type === 'saida' ? 'saida' : 'entrada',
+          metodoPagamento: this.mapPaymentMethod(record.paymentMethod),
+          statusPagamento: record.paymentStatus
+        })))
+      );
+    })
   ) as Observable<FinancialRecord[]>;
 
   private sharedRecords$ = this.records$.pipe(shareReplay({ bufferSize: 1, refCount: true }));

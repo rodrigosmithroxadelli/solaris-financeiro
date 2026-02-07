@@ -34,11 +34,12 @@
 .header-text h2 {
   margin: 0;
   font-size: 18px;
+  color: #000;
 }
 
 .header-text p {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: #000;
   font-size: 13px;
 }
 
@@ -54,11 +55,12 @@
 .transactions-section h3 {
   margin: 0;
   font-size: 16px;
+  color: #000;
 }
 
 .transactions-section p {
   margin: 4px 0 0;
-  color: #6b7280;
+  color: #000;
   font-size: 13px;
 }
 
@@ -77,7 +79,7 @@
 .transaction-title {
   font-weight: 600;
   font-size: 14px;
-  color: #111827;
+  color: #000;
 }
 
 .transaction-icon {
@@ -86,13 +88,14 @@
 
 .transaction-subtitle {
   font-size: 12px;
-  color: #6b7280;
+  color: #000;
 }
 
 .transaction-label {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  color: #000;
 }
 
 .transaction-end {

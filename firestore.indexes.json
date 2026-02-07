@@ -1,0 +1,51 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "lancamentosFinanceiros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "empresaId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dataCompetencia", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "lancamentosFinanceiros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "empresaId", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dataCompetencia", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "lancamentosFinanceiros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "empresaId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dataPagamento", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "lancamentosFinanceiros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "empresaId", "order": "ASCENDING" },
+        { "fieldPath": "id_os", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "lancamentosFinanceiros",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "data_vencimento", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

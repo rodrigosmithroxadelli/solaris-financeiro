@@ -43,10 +43,10 @@ export class SalesService {
       (async () => {
         try {
           const ordersCollection = runInInjectionContext(this.environmentInjector, () =>
-            collection(this.firestore, 'tenants', tenantId, 'serviceOrders')
+            collection(this.firestore, 'empresas', tenantId, 'serviceOrders')
           );
           const transactionsCollection = runInInjectionContext(this.environmentInjector, () =>
-            collection(this.firestore, 'lancamentos')
+            collection(this.firestore, 'empresas', tenantId, 'lancamentos')
           );
 
           const orderPayload: Partial<ServiceOrder> = {
@@ -55,8 +55,7 @@ export class SalesService {
             clientId: '',
             clientName: input.clientName || '',
             vehicle: { plate: '', brand: '', model: '', color: '' },
-            status: 'AGUARDANDO_ACAO',
-            serviceStatus: 'AGUARDANDO_ACAO',
+            status: 'OPEN',
             paymentStatus,
             paymentMethod: this.mapPaymentMethod(input.paymentMethod),
             serviceValue: input.amount,
@@ -96,7 +95,7 @@ export class SalesService {
           );
 
           await runInInjectionContext(this.environmentInjector, () =>
-            updateDoc(doc(this.firestore, 'tenants', tenantId, 'serviceOrders', orderRef.id), { linkedTransactionId: transactionRef.id })
+            updateDoc(doc(this.firestore, 'empresas', tenantId, 'serviceOrders', orderRef.id), { linkedTransactionId: transactionRef.id })
           );
 
           observer.next({ transactionId: transactionRef.id, orderId: orderRef.id });

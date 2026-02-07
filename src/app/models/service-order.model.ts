@@ -58,7 +58,7 @@ export interface ServiceOrder {
   clientName: string; // Desnormalizado para leitura rápida
   vehicle: Vehicle;
   
-  status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'FINISHED' | 'PAID' | 'CANCELLED' | 'AGUARDANDO_ACAO' | 'CONCLUIDA' | 'CANCELADA';
+  status: 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'CONCLUIDA' | 'CANCELADA';
   serviceStatus?: ServiceStatus;
   paymentStatus?: PaymentStatus;
   paymentMethod?: ServicePaymentMethod;

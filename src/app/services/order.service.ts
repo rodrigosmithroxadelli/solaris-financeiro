@@ -54,7 +54,7 @@ export class OrderService {
   async updatePaymentStatus(orderId: string, status: PaymentStatus) {
     const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'tenants', tenantId, 'serviceOrders', orderId)
+      doc(this.firestore, 'empresas', tenantId, 'serviceOrders', orderId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       updateDoc(docRef, { paymentStatus: status })
@@ -64,7 +64,7 @@ export class OrderService {
   async updateServiceStatus(orderId: string, status: ServiceStatus) {
     const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'tenants', tenantId, 'serviceOrders', orderId)
+      doc(this.firestore, 'empresas', tenantId, 'serviceOrders', orderId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       updateDoc(docRef, { serviceStatus: status, status })
@@ -74,7 +74,7 @@ export class OrderService {
   async cancelOrder(orderId: string) {
     const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'tenants', tenantId, 'serviceOrders', orderId)
+      doc(this.firestore, 'empresas', tenantId, 'serviceOrders', orderId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       updateDoc(docRef, { status: 'CANCELADA', serviceStatus: 'CANCELADA' })
@@ -84,7 +84,7 @@ export class OrderService {
   async deleteOrder(orderId: string) {
     const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'tenants', tenantId, 'serviceOrders', orderId)
+      doc(this.firestore, 'empresas', tenantId, 'serviceOrders', orderId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       deleteDoc(docRef)
@@ -94,7 +94,7 @@ export class OrderService {
   async syncOrdersFromTransactions(transactions: Transaction[]) {
     const tenantId = await this.getTenantId();
     const ordersCollection = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, 'tenants', tenantId, 'serviceOrders')
+      collection(this.firestore, 'empresas', tenantId, 'serviceOrders')
     );
     let changed = false;
     for (const transaction of transactions) {
@@ -112,8 +112,7 @@ export class OrderService {
         clientId: '',
         clientName: transaction.clientName || '',
         vehicle: { plate: '', brand: '', model: '', color: '' },
-        status: 'AGUARDANDO_ACAO',
-        serviceStatus: 'AGUARDANDO_ACAO',
+        status: 'OPEN',
         paymentStatus,
         paymentMethod: this.mapPaymentMethod(transaction.paymentMethod),
         serviceValue: transaction.amount,
@@ -132,7 +131,7 @@ export class OrderService {
         addDoc(ordersCollection, orderPayload as ServiceOrder)
       );
       const transactionRef = runInInjectionContext(this.environmentInjector, () =>
-        doc(this.firestore, 'lancamentos', transaction.id!)
+        doc(this.firestore, 'empresas', tenantId, 'lancamentos', transaction.id!)
       );
       await runInInjectionContext(this.environmentInjector, () =>
         updateDoc(transactionRef, {
@@ -159,7 +158,7 @@ export class OrderService {
       return [];
     }
     const ordersCollection = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, 'tenants', tenantId, 'serviceOrders')
+      collection(this.firestore, 'empresas', tenantId, 'serviceOrders')
     );
     const lastDoc = this.lastDocByTenant.get(tenantId) ?? null;
     const constraints: QueryConstraint[] = [orderBy('__name__'), limit(this.PAGE_SIZE)];

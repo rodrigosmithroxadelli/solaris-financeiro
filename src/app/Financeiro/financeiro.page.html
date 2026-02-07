@@ -1,0 +1,179 @@
+<ion-content [fullscreen]="true" class="financeiro-content">
+  <div class="caixa-form financeiro-form">
+    <div class="form-header">
+      <div class="header-icon header-icon--finance">
+        <ion-icon name="stats-chart-outline"></ion-icon>
+      </div>
+      <div class="header-text">
+        <h2>Financeiro</h2>
+        <p>Indicadores consolidados do caixa</p>
+      </div>
+    </div>
+
+    <ion-segment [(ngModel)]="activeTab" class="financeiro-tabs">
+      <ion-segment-button value="caixa">
+        <ion-icon name="cash-outline"></ion-icon>
+        <span>Caixa Atual</span>
+      </ion-segment-button>
+      <ion-segment-button value="projecao">
+        <ion-icon name="trending-up-outline"></ion-icon>
+        <span>Projeção</span>
+      </ion-segment-button>
+      <ion-segment-button value="resultado">
+        <ion-icon name="bar-chart-outline"></ion-icon>
+        <span>Resultado</span>
+      </ion-segment-button>
+    </ion-segment>
+
+    <section *ngIf="activeTab === 'caixa'" class="report-card highlight">
+      <div class="section-header">
+        <h3>Caixa atual</h3>
+        <p>Saldo confirmado no caixa</p>
+      </div>
+      <div class="form-row">
+        <div class="value-box">
+          <span class="value-label">Entradas confirmadas</span>
+          <span class="value-value success">
+            {{ formattingService.formatCurrency((financeiroService.entradasConfirmadas$ | async) ?? 0) }}
+          </span>
+        </div>
+        <div class="value-box">
+          <span class="value-label">Saídas confirmadas</span>
+          <span class="value-value danger">
+            {{ formattingService.formatCurrency((financeiroService.saidasConfirmadas$ | async) ?? 0) }}
+          </span>
+        </div>
+      </div>
+      <div class="value-box full">
+        <span class="value-label">Saldo em caixa</span>
+        <span class="value-value">
+          {{ formattingService.formatCurrency((financeiroService.caixaAtual$ | async) ?? 0) }}
+        </span>
+      </div>
+    </section>
+
+    <section *ngIf="activeTab === 'projecao'" class="report-card">
+      <div class="section-header">
+        <h3>Projeção de caixa</h3>
+        <p>Entradas e saídas previstas</p>
+      </div>
+      <div class="form-row">
+        <div class="value-box">
+          <span class="value-label">Pendentes de entrada</span>
+          <span class="value-value success">
+            {{ formattingService.formatCurrency((financeiroService.pendentesEntrada$ | async) ?? 0) }}
+          </span>
+        </div>
+        <div class="value-box">
+          <span class="value-label">Pendentes de saída</span>
+          <span class="value-value danger">
+            {{ formattingService.formatCurrency((financeiroService.pendentesSaida$ | async) ?? 0) }}
+          </span>
+        </div>
+      </div>
+      <div class="value-box full">
+        <span class="value-label">Saldo projetado</span>
+        <span class="value-value">
+          {{ formattingService.formatCurrency((financeiroService.saldoProjetado$ | async) ?? 0) }}
+        </span>
+      </div>
+
+      <div class="chart-block">
+        <h4>Realizado vs Projetado</h4>
+        <div class="comparison-chart" *ngIf="financeiroService.comparativoRealizadoProjetado$ | async as comparativoRealizado">
+          <div class="chart-row">
+            <div class="chart-label">Realizado</div>
+            <div class="chart-bar-container">
+              <div class="chart-bar-fill success" [style.width.%]="comparativoRealizado.primaryPercent"></div>
+              <span class="chart-value-inline">
+                {{ formattingService.formatCurrency(comparativoRealizado.primaryValue) }}
+              </span>
+            </div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-label">Projetado</div>
+            <div class="chart-bar-container">
+              <div class="chart-bar-fill warning" [style.width.%]="comparativoRealizado.secondaryPercent"></div>
+              <span class="chart-value-inline">
+                {{ formattingService.formatCurrency(comparativoRealizado.secondaryValue) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="activeTab === 'resultado'" class="report-card">
+      <div class="section-header">
+        <h3>Resultado do período</h3>
+        <p>DRE simplificado por competência</p>
+      </div>
+      <ng-container *ngIf="financeiroService.dreComparativo$ | async as dre">
+        <div class="dre-grid">
+          <div class="dre-card">
+            <h4>Mês atual</h4>
+            <div class="dre-row">
+              <span>Receita bruta</span>
+              <strong class="success">{{ formattingService.formatCurrency(dre.atual.receitaBruta) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Total de despesas</span>
+              <strong class="danger">{{ formattingService.formatCurrency(dre.atual.despesas) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Resultado operacional</span>
+              <strong>{{ formattingService.formatCurrency(dre.atual.resultadoOperacional) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Margem</span>
+              <strong>{{ (dre.atual.margem * 100) | number:'1.0-1' }}%</strong>
+            </div>
+          </div>
+          <div class="dre-card muted">
+            <h4>Mês anterior</h4>
+            <div class="dre-row">
+              <span>Receita bruta</span>
+              <strong class="success">{{ formattingService.formatCurrency(dre.anterior.receitaBruta) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Total de despesas</span>
+              <strong class="danger">{{ formattingService.formatCurrency(dre.anterior.despesas) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Resultado operacional</span>
+              <strong>{{ formattingService.formatCurrency(dre.anterior.resultadoOperacional) }}</strong>
+            </div>
+            <div class="dre-row">
+              <span>Margem</span>
+              <strong>{{ (dre.anterior.margem * 100) | number:'1.0-1' }}%</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-block">
+          <h4>Entrada vs Saída</h4>
+          <div class="comparison-chart" *ngIf="financeiroService.comparativoEntradasSaidasMes$ | async as comparativoEntradasSaidas">
+            <div class="chart-row">
+              <div class="chart-label">Entradas</div>
+              <div class="chart-bar-container">
+                <div class="chart-bar-fill success" [style.width.%]="comparativoEntradasSaidas.primaryPercent"></div>
+                <span class="chart-value-inline">
+                  {{ formattingService.formatCurrency(comparativoEntradasSaidas.primaryValue) }}
+                </span>
+              </div>
+            </div>
+            <div class="chart-row">
+              <div class="chart-label">Saídas</div>
+              <div class="chart-bar-container">
+                <div class="chart-bar-fill danger" [style.width.%]="comparativoEntradasSaidas.secondaryPercent"></div>
+                <span class="chart-value-inline">
+                  {{ formattingService.formatCurrency(comparativoEntradasSaidas.secondaryValue) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+  </div>
+</ion-content>

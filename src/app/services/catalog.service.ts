@@ -71,7 +71,7 @@ export class CatalogService {
     }
 
     const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CATALOG_COLLECTION)
+      collection(this.firestore, 'empresas', tenantId, this.CATALOG_COLLECTION)
     );
     let itemId = item.id;
 
@@ -123,9 +123,9 @@ export class CatalogService {
     }
 
     try {
-      const itemDocRef = runInInjectionContext(this.environmentInjector, () =>
-        doc(this.firestore, this.CATALOG_COLLECTION, id)
-      );
+        const itemDocRef = runInInjectionContext(this.environmentInjector, () =>
+          doc(this.firestore, 'empresas', currentUser.tenantId, this.CATALOG_COLLECTION, id)
+        );
       await runInInjectionContext(this.environmentInjector, () =>
         deleteDoc(itemDocRef)
       );
@@ -183,7 +183,7 @@ export class CatalogService {
       return;
     }
     const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CATALOG_COLLECTION)
+      collection(this.firestore, 'empresas', currentUser.tenantId, this.CATALOG_COLLECTION)
     );
     const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
       where('tenantId', '==', currentUser.tenantId),
@@ -206,7 +206,7 @@ export class CatalogService {
 
   private async getCatalogItemByIdOnce(tenantId: string, id: string): Promise<CatalogItem> {
     const itemDocRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, this.CATALOG_COLLECTION, id)
+      doc(this.firestore, 'empresas', tenantId, this.CATALOG_COLLECTION, id)
     );
     const itemDocSnap = await runInInjectionContext(this.environmentInjector, () =>
       getDoc(itemDocRef)
@@ -228,7 +228,7 @@ export class CatalogService {
       return [];
     }
     const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CATALOG_COLLECTION)
+      collection(this.firestore, 'empresas', tenantId, this.CATALOG_COLLECTION)
     );
     const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
       where('tenantId', '==', tenantId),
@@ -257,7 +257,7 @@ export class CatalogService {
       return [];
     }
     const catalogCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CATALOG_COLLECTION)
+      collection(this.firestore, 'empresas', tenantId, this.CATALOG_COLLECTION)
     );
     const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
       where('tenantId', '==', tenantId),

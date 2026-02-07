@@ -22,12 +22,16 @@ export const routes: Routes = [
         loadComponent: () => import('./home/home.page').then((m) => m.HomePage),
       },
       {
-        path: 'caixa',
-        loadComponent: () => import('./Caixa/caixa.page').then((m) => m.CaixaPage),
+        path: 'vendas',
+        loadComponent: () => import('./Vendas/vendas.page').then((m) => m.VendasPage),
       },
       {
         path: 'relatorios',
         loadComponent: () => import('./Relatórios/relatorios.page').then((m) => m.RelatoriosPage),
+      },
+      {
+        path: 'financeiro',
+        loadComponent: () => import('./Financeiro/financeiro.page').then((m) => m.FinanceiroPage),
       },
       {
         path: 'admin',
@@ -65,5 +69,9 @@ export const routes: Routes = [
   {
     path: 'catalog-management',
     loadComponent: () => import('./src/app/Catalog/catalog-management/catalog-management.page').then( m => m.CatalogManagementPage)
+  },  {
+    path: 'sale-editor',
+    loadComponent: () => import('./app/Vendas/sale-editor/sale-editor.page').then( m => m.SaleEditorPage)
   },
+
 ];

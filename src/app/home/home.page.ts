@@ -1,10 +1,6 @@
-
-import { Component, OnInit, AfterViewInit, OnDestroy, inject, DestroyRef, ViewChild, ElementRef, HostListener } from '@angular/core';
-
-import { FinanceService, CashFlowSummary } from '../services/finance.service';
-import { FinancialService, FinancialRecord } from '../services/financial.service';
-
-import { Transaction } from '../models/transaction.model';
+import { Component, OnInit, AfterViewInit, OnDestroy, inject, DestroyRef, ViewChild, ElementRef, HostListener, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { FormattingService } from '../services/formatting.service';
+import { FinanceiroService, MonthlyChartData, SalesBreakdown, IndicadoresEstrategicos } from '../services/financeiro.service';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,71 +14,41 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { addIcons } from 'ionicons';
 
 import {
-
   searchOutline,
-
   notificationsOutline,
-
   menuOutline,
-
   homeOutline,
-
   constructOutline,
-
   walletOutline,
-
   peopleOutline,
-
   cubeOutline,
-
   barChartOutline,
-
   personCircleOutline,
-
   eyeOutline,
-
   cashOutline,
-
   calendarOutline,
-
   documentTextOutline,
-
   checkboxOutline,
-
   cardOutline,
-
   arrowUpCircleOutline,
-
   arrowDownCircleOutline,
-
   gridOutline,
-
   chatbubbleEllipsesOutline,
-
   briefcaseOutline,
-
   businessOutline,
-
   ribbonOutline,
-
   helpCircleOutline,
-
   chevronBackOutline,
-
   chevronForwardOutline,
-
   logoInstagram,
-
   logoFacebook,
-
   logoYoutube,
-
   logoWhatsapp
-
 } from 'ionicons/icons';
 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { shareReplay } from 'rxjs';
+import { BehaviorSubject, shareReplay } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 
 import { AuthService } from '../services/auth.service';
 
@@ -90,9 +56,7 @@ import { CompanyProfileService } from '../services/company-profile.service';
 import { CompanyProfile } from '../models/company-profile.model';
 
 import { ClientService } from '../services/client.service';
-
 import { StorageService } from '../services/storage.service';
-
 import { Client } from '../models/client.model';
 
 Chart.register(...registerables, ChartDataLabels);
@@ -142,261 +106,112 @@ const realizedOverlayLinePlugin: Plugin<'bar'> = {
   }
 };
 
-interface MonthlyChartData {
-  labels: string[];
-  realized: number[];
-  remaining: number[];
-  marker: Array<[number, number]>;
-}
-
-
 
 @Component({
-
   selector: 'app-home',
-
   templateUrl: 'home.page.html',
-
   styleUrls: ['home.page.scss'],
-
   standalone: true,
-
   imports: [
-
     CommonModule,
     FormsModule,
-
     IonicModule,
-
     RouterModule
-
-  ]
-
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-
 export class HomePage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('salesChart') private salesChartRef?: ElementRef<HTMLCanvasElement>;
-  financeService = inject(FinanceService);
-  private financialService = inject(FinancialService);
-
+  formattingService = inject(FormattingService);
+  private financeiroService = inject(FinanceiroService);
   private authService = inject(AuthService);
-
+  private cdr = inject(ChangeDetectorRef);
   private companyProfileService = inject(CompanyProfileService);
-
   private clientService = inject(ClientService);
-
   private storageService = inject(StorageService);
   private router = inject(Router);
-
   private destroyRef = inject(DestroyRef);
+
   private hasLoadedClients = false;
   private salesChart?: Chart<'bar'>;
-  private pendingChartData?: MonthlyChartData;
   private isMobileView = false;
   private readonly monthlyTarget = 10000;
-  private readonly monthLabels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-
-
-  transactions: Transaction[] = [];
-  chartTransactions: Transaction[] = [];
-
+  
   balance = { entradas: 0, saidas: 0, total: 0 };
-
-  todaySummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
-
-  weekSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
-
-  monthSummary: CashFlowSummary = { entradas: 0, saidas: 0, saldo: 0 };
-
-
+  todaySummary = { entradas: 0, saidas: 0, saldo: 0 };
+  monthSummary = { entradas: 0, saidas: 0, saldo: 0 };
 
   currentUserName = 'Cliente';
-
   greetingLabel = 'bom dia';
-
   todayLabel = '';
-
   calendarLabel = '';
-
   selectedMonthDate = new Date();
-
+  private selectedMonth$ = new BehaviorSubject<Date>(this.selectedMonthDate);
   selectedMonthLabel = '';
-
   isCurrentMonthSelected = true;
-
   viewMode: 'MENSAL' | 'DIARIA' = 'MENSAL';
-
   selectedDayDate = new Date();
-
   selectedDayLabel = '';
-
   calendarDate = new Date().toISOString();
-
   todayDate = new Date().getDate();
 
-
-
-  salesBreakdown = {
-
+  salesBreakdown: SalesBreakdown = {
     debito: 0,
-
     credito: 0,
-
     pix: 0,
-
     dinheiro: 0,
-
     boleto: 0,
-
     transferencias: 0
-
   };
-
   creditCardTotal = 0;
-
   showCreditCardCard = false;
-
-  monthlyCreditCardTotal = 0;
 
   entradasPeriodo = 0;
   saidasPeriodo = 0;
-  faturasCartaoPeriodo = 0;
   pendingPaymentsTotal = 0;
   monthlyExpensesTotal = 0;
   totalCashBalance = 0;
 
-  private financialRecords: FinancialRecord[] = [];
-
-  entradasHoje = 0;
-  saidasHoje = 0;
-  faturasCartaoHoje = 0;
-
-
-
-
-
-
   budgetsPending = 0;
-
   budgetsApproved = 0;
-
   occupiedSlots = 0;
-
   totalSlots = 10;
-
   completedSlots = 0;
-
   postSalesPending = 0;
-
   postSalesCompleted = 0;
-
   employeesCount = 0;
-
   companyName = 'Solaris';
-
   companySinceLabel = '27/01/2026';
-
   subscriptionLabel = 'Teste grátis';
-
   clientsCount = 0;
-
   topClients: Client[] = [];
-
-
+  indicadoresEstrategicos: IndicadoresEstrategicos | null = null;
 
   constructor() {
-
     addIcons({
-
-      searchOutline,
-
-      notificationsOutline,
-
-      menuOutline,
-
-      homeOutline,
-
-      constructOutline,
-
-      walletOutline,
-
-      peopleOutline,
-
-      cubeOutline,
-
-      barChartOutline,
-
-      personCircleOutline,
-
-      eyeOutline,
-
-      cashOutline,
-
-      calendarOutline,
-
-      documentTextOutline,
-
-      checkboxOutline,
-
-      cardOutline,
-
-      arrowUpCircleOutline,
-
-      arrowDownCircleOutline,
-
-      gridOutline,
-
-      chatbubbleEllipsesOutline,
-
-      briefcaseOutline,
-
-      businessOutline,
-
-      ribbonOutline,
-
-      helpCircleOutline,
-
-      chevronBackOutline,
-
-      chevronForwardOutline,
-
-      logoInstagram,
-
-      logoFacebook,
-
-      logoYoutube,
-
-      logoWhatsapp
-
+      searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline,
+      walletOutline, peopleOutline, cubeOutline, barChartOutline, personCircleOutline,
+      eyeOutline, cashOutline, calendarOutline, documentTextOutline, checkboxOutline,
+      cardOutline, arrowUpCircleOutline, arrowDownCircleOutline, gridOutline,
+      chatbubbleEllipsesOutline, briefcaseOutline, businessOutline, ribbonOutline,
+      helpCircleOutline, chevronBackOutline, chevronForwardOutline, logoInstagram,
+      logoFacebook, logoYoutube, logoWhatsapp
     });
-
   }
 
-
-
   ngOnInit() {
-
     this.setDateLabels();
-
     this.updateSelectedMonthLabel();
     this.updateSelectedDayLabel();
 
     this.employeesCount = this.storageService.getUsers().length;
 
-
-
     this.authService.currentUser$
-
       .pipe(takeUntilDestroyed(this.destroyRef))
-
       .subscribe(user => {
-
         this.currentUserName = user?.displayName || user?.email?.split('@')[0] || 'Cliente';
-
+        this.cdr.markForCheck();
       });
-
-
 
     const companyProfile$ = this.companyProfileService.getCompanyProfile()
       .pipe(shareReplay({ bufferSize: 1, refCount: true }));
@@ -408,9 +223,8 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
         if (companyProfile?.name) {
           this.companyName = companyProfile.name;
         }
+        this.cdr.markForCheck();
       });
-
-
 
     if (!this.hasLoadedClients) {
       this.hasLoadedClients = true;
@@ -419,279 +233,143 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
         .subscribe(clients => {
           this.clientsCount = clients.length;
           this.topClients = clients.slice(0, 5);
+          this.cdr.markForCheck();
         });
     }
 
-
-
-    this.financeService.getPaidTransactions()
+    this.financeiroService.caixaAtual$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(data => {
-        this.transactions = data;
-        this.calculateBalance();
-        this.applyDateFilters(data);
-        this.updateSalesChart();
+      .subscribe(total => {
+        this.totalCashBalance = total;
+        this.balance.total = total;
+        this.cdr.markForCheck();
       });
 
-    this.financeService.transactions$
+    this.financeiroService.resumoDia$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(data => {
-        this.chartTransactions = data;
-        this.updateSalesChart();
+      .subscribe(resumo => {
+        this.todaySummary = resumo;
+        this.balance.entradas = resumo.entradas;
+        this.balance.saidas = resumo.saidas;
+        this.cdr.markForCheck();
       });
 
-
-
-    const today = new Date();
-
-    this.financeService.getSummaryForPeriod('day', today)
+    this.financeiroService.entradasMes$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(summary => {
-        this.todaySummary = summary;
-        this.calculateBalance();
+      .subscribe(entradas => {
+        this.entradasPeriodo = entradas;
+        this.cdr.markForCheck();
       });
 
-    this.financialService.getRegistros()
+    this.financeiroService.saidasMes$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(records => {
-        this.financialRecords = records;
+      .subscribe(saidas => {
+        this.saidasPeriodo = saidas;
+        this.monthlyExpensesTotal = saidas;
+        this.cdr.markForCheck();
+      });
+
+    this.financeiroService.pendentesEntrada$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(valor => {
+        this.pendingPaymentsTotal = valor;
+        this.cdr.markForCheck();
+      });
+
+    this.selectedMonth$
+      .pipe(
+        switchMap(date => this.financeiroService.getMonthlyChartData(date.getFullYear(), this.monthlyTarget)),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(chartData => {
+        this.updateSalesChart(chartData);
+        this.cdr.markForCheck();
+      });
+
+    this.selectedMonth$
+      .pipe(
+        switchMap(date => {
+          const { start, end } = this.getMonthRangeFor(date);
+          return this.financeiroService.getSalesBreakdown(start, end);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(breakdown => {
+        this.salesBreakdown = breakdown;
+        this.creditCardTotal = breakdown.credito;
+        this.showCreditCardCard = this.creditCardTotal > 0;
+        this.cdr.markForCheck();
+      });
+
+    this.selectedMonth$
+      .pipe(
+        switchMap(date => {
+          const { start, end } = this.getMonthRangeFor(date);
+          return this.financeiroService.getResumoPagamento(start, end);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(resumo => {
+        this.monthSummary = resumo;
+        this.cdr.markForCheck();
+      });
+
+    this.refreshFinanceiroResumo();
+
+    this.financeiroService.getLancamentos$()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
         this.updatePeriodoResumo();
+        this.cdr.markForCheck();
       });
 
+    this.financeiroService.indicadoresEstrategicos$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(indicadores => {
+        this.indicadoresEstrategicos = indicadores;
+        this.cdr.markForCheck();
+      });
   }
 
   ngAfterViewInit() {
     this.updateResponsiveFlag();
-    this.initSalesChart();
   }
 
   ngOnDestroy() {
     this.salesChart?.destroy();
   }
 
-
-
-  calculateBalance() {
-    const entradas = this.todaySummary.entradas;
-    const saidas = this.todaySummary.saidas;
-
-
-
-    this.balance = {
-
-      entradas,
-
-      saidas,
-
-      total: entradas - saidas
-
-    };
-
-  }
-
-
-
   private setDateLabels() {
-
     const now = new Date();
-
     const hour = now.getHours();
-
     if (hour >= 5 && hour < 12) {
-
       this.greetingLabel = 'bom dia';
-
     } else if (hour >= 12 && hour < 18) {
-
       this.greetingLabel = 'boa tarde';
-
     } else {
-
       this.greetingLabel = 'boa noite';
-
     }
-
-
 
     const dayLabel = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-
     const weekdayLabel = this.capitalize(now.toLocaleDateString('pt-BR', { weekday: 'long' }));
-
     this.todayLabel = `${dayLabel}, ${weekdayLabel}`;
 
-
-
     const monthLabel = this.capitalize(now.toLocaleDateString('pt-BR', { month: 'long' }));
-
     this.calendarLabel = `${monthLabel} / ${now.getFullYear()}`;
-
     this.todayDate = now.getDate();
-
   }
-
-
 
   private capitalize(text: string): string {
-
-    if (!text) {
-
-      return text;
-
-    }
-
+    if (!text) { return text; }
     return text.charAt(0).toUpperCase() + text.slice(1);
-
-  }
-
-
-
-  private updateSalesBreakdown(transactions: Transaction[]) {
-
-    const breakdown = {
-
-      debito: 0,
-
-      credito: 0,
-
-      pix: 0,
-
-      dinheiro: 0,
-
-      boleto: 0,
-
-      transferencias: 0
-
-    };
-
-
-
-    transactions
-      .filter(t => t.type === 'entrada')
-
-      .forEach(t => {
-
-        switch (t.paymentMethod) {
-
-          case 'cartao_debito':
-
-            breakdown.debito += t.amount;
-
-            break;
-
-          case 'cartao_credito':
-
-            breakdown.credito += t.amount;
-
-            break;
-
-          case 'pix':
-
-            breakdown.pix += t.amount;
-
-            break;
-
-          case 'dinheiro':
-
-            breakdown.dinheiro += t.amount;
-
-            break;
-
-          case 'boleto':
-
-            breakdown.boleto += t.amount;
-
-            break;
-
-          case 'transferencia':
-
-            breakdown.transferencias += t.amount;
-
-            break;
-
-          default:
-
-            break;
-
-        }
-
-      });
-
-
-
-    this.salesBreakdown = breakdown;
-
-    this.creditCardTotal = breakdown.credito;
-
-    this.showCreditCardCard = this.creditCardTotal > 0;
-
-  }
-
-  private applyDateFilters(transactions: Transaction[]) {
-    const selectedTransactions = this.filterTransactionsByViewMode(transactions);
-    this.monthSummary = this.calculateSummary(selectedTransactions);
-    this.updateSalesBreakdown(selectedTransactions);
-
-    const creditCardTotal = selectedTransactions
-      .filter(t => t.type === 'entrada' && t.paymentMethod === 'cartao_credito')
-      .reduce((acc, curr) => acc + curr.amount, 0);
-
-    this.monthlyCreditCardTotal = creditCardTotal;
-    this.showCreditCardCard = creditCardTotal > 0;
-  }
-
-  private calculateSummary(transactions: Transaction[]): CashFlowSummary {
-
-    const entradas = transactions.filter(t => t.type === 'entrada').reduce((acc, curr) => acc + curr.amount, 0);
-
-    const saidas = transactions.filter(t => t.type === 'saida').reduce((acc, curr) => acc + curr.amount, 0);
-
-    return { entradas, saidas, saldo: entradas - saidas };
-
-  }
-
-  private filterTransactionsByMonth(transactions: Transaction[], monthDate: Date): Transaction[] {
-
-    const startMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1, 0, 0, 0);
-
-    const endMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    return transactions.filter(t => {
-
-      const txDate = new Date(t.date);
-
-      return txDate >= startMonth && txDate <= endMonth;
-
-    });
-
-  }
-
-  private filterTransactionsByViewMode(transactions: Transaction[]): Transaction[] {
-    if (this.viewMode === 'DIARIA') {
-      return this.filterTransactionsByDay(transactions, this.selectedDayDate);
-    }
-    return this.filterTransactionsByMonth(transactions, this.selectedMonthDate);
-  }
-
-  private filterTransactionsByDay(transactions: Transaction[], dayDate: Date): Transaction[] {
-    const startDay = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 0, 0, 0, 0);
-    const endDay = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), 23, 59, 59, 999);
-    return transactions.filter(t => {
-      const txDate = new Date(t.date);
-      return txDate >= startDay && txDate <= endDay;
-    });
   }
 
   private updateSelectedMonthLabel() {
-
     const monthLabel = this.capitalize(this.selectedMonthDate.toLocaleDateString('pt-BR', { month: 'long' }));
-
     this.selectedMonthLabel = `${monthLabel} / ${this.selectedMonthDate.getFullYear()}`;
-
     const today = new Date();
-
     this.isCurrentMonthSelected = today.getFullYear() === this.selectedMonthDate.getFullYear()
       && today.getMonth() === this.selectedMonthDate.getMonth();
-
   }
 
   private updateSelectedDayLabel() {
@@ -701,58 +379,36 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
 
   onViewModeChange(mode: 'MENSAL' | 'DIARIA') {
     this.viewMode = mode;
-    this.applyDateFilters(this.transactions);
+    this.refreshFinanceiroResumo();
     this.updatePeriodoResumo();
   }
 
   goToPreviousMonth() {
-
     this.selectedMonthDate = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() - 1, 1);
-
     this.updateSelectedMonthLabel();
-
-    this.applyDateFilters(this.transactions);
+    this.refreshFinanceiroResumo();
     this.updatePeriodoResumo();
-    this.updateSalesChart();
-
   }
 
   goToNextMonth() {
-
     this.selectedMonthDate = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() + 1, 1);
-
     this.updateSelectedMonthLabel();
-
-    this.applyDateFilters(this.transactions);
+    this.refreshFinanceiroResumo();
     this.updatePeriodoResumo();
-    this.updateSalesChart();
+  }
 
+  private refreshFinanceiroResumo() {
+    this.selectedMonth$.next(new Date(this.selectedMonthDate));
   }
 
   private updatePeriodoResumo() {
     const { start, end } = this.getPeriodoRange();
-    const recordsInRange = this.financialRecords.filter(record => {
-      const recordDate = record.data.toDate();
-      return recordDate >= start && recordDate <= end;
-    });
-    const allPaidRecords = this.financialRecords.filter(record => record.statusPagamento !== 'PENDENTE');
-
-    this.entradasPeriodo = this.sumByTipo(recordsInRange, 'entrada');
-    this.saidasPeriodo = this.sumByTipo(recordsInRange, 'saida');
-    this.faturasCartaoPeriodo = recordsInRange
-      .filter(record => record.tipo === 'entrada' && record.metodoPagamento === 'credito')
-      .reduce((acc, curr) => acc + curr.valor, 0);
-    this.pendingPaymentsTotal = recordsInRange
-      .filter(record => record.statusPagamento === 'PENDENTE' && record.tipo === 'entrada')
-      .reduce((acc, curr) => acc + curr.valor, 0);
-    this.monthlyExpensesTotal = this.sumByTipo(recordsInRange, 'saida');
-    this.totalCashBalance = this.sumByTipo(allPaidRecords, 'entrada') - this.sumByTipo(allPaidRecords, 'saida');
-
-    this.balance = {
-      entradas: this.entradasPeriodo,
-      saidas: this.saidasPeriodo,
-      total: this.entradasPeriodo - this.saidasPeriodo
-    };
+    this.financeiroService.getPeriodoResumo(start, end)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(resumo => {
+        this.entradasPeriodo = resumo.entradas;
+        this.saidasPeriodo = resumo.saidas;
+      });
   }
 
   private getPeriodoRange(): { start: Date; end: Date } {
@@ -761,19 +417,17 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
       const end = new Date(this.selectedDayDate.getFullYear(), this.selectedDayDate.getMonth(), this.selectedDayDate.getDate(), 23, 59, 59, 999);
       return { start, end };
     }
-    const start = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth(), 1, 0, 0, 0, 0);
-    const end = new Date(this.selectedMonthDate.getFullYear(), this.selectedMonthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return this.getMonthRangeFor(this.selectedMonthDate);
+  }
+
+  private getMonthRangeFor(date: Date): { start: Date; end: Date } {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
     return { start, end };
   }
 
-  private sumByTipo(records: FinancialRecord[], tipo: FinancialRecord['tipo']): number {
-    return records
-      .filter(record => record.tipo === tipo)
-      .reduce((acc, curr) => acc + curr.valor, 0);
-  }
-
   goToNovaVenda() {
-    this.router.navigate(['/tabs/caixa']);
+    this.router.navigate(['/sale-editor']);
   }
 
   @HostListener('window:resize')
@@ -786,14 +440,11 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private initSalesChart() {
+  private initSalesChart(chartData: MonthlyChartData) {
     const context = this.salesChartRef?.nativeElement.getContext('2d');
     if (!context) {
       return;
     }
-    const sourceTransactions = this.chartTransactions.length ? this.chartTransactions : this.transactions;
-    const chartData = this.pendingChartData ?? this.buildMonthlyChartData(sourceTransactions);
-    this.pendingChartData = undefined;
     this.salesChart = new Chart(context, {
       type: 'bar',
       data: {
@@ -805,44 +456,14 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  private updateSalesChart() {
-    const sourceTransactions = this.chartTransactions.length ? this.chartTransactions : this.transactions;
-    const chartData = this.buildMonthlyChartData(sourceTransactions);
+  private updateSalesChart(chartData: MonthlyChartData) {
     if (!this.salesChart) {
-      this.pendingChartData = chartData;
+      this.initSalesChart(chartData);
       return;
     }
     this.salesChart.data.labels = chartData.labels;
     this.salesChart.data.datasets = this.buildChartDatasets(chartData);
     this.salesChart.update();
-  }
-
-  private buildMonthlyChartData(transactions: Transaction[]): MonthlyChartData {
-    const year = this.selectedMonthDate.getFullYear();
-    const realized = Array.from({ length: 12 }, () => 0);
-    transactions
-      .filter(transaction => transaction.type === 'entrada')
-      .forEach(transaction => {
-        const date = new Date(transaction.date);
-        if (date.getFullYear() !== year) {
-          return;
-        }
-        realized[date.getMonth()] += transaction.amount;
-      });
-
-    const remaining = realized.map(value => Math.max(this.monthlyTarget - value, 0));
-    const maxRealized = Math.max(...realized, this.monthlyTarget, 1);
-    const markerHeight = Math.max(maxRealized * 0.02, 1);
-    const marker = realized.map(value => (
-      value > 0 ? [Math.max(value - markerHeight, 0), value] as [number, number] : [0, 0] as [number, number]
-    ));
-
-    return {
-      labels: [...this.monthLabels],
-      realized,
-      remaining,
-      marker
-    };
   }
 
   private buildChartDatasets(data: MonthlyChartData): ChartDataset<'bar'>[] {
@@ -854,9 +475,7 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
         backgroundColor: '#49c97d',
         stack: 'goal',
         borderRadius: 6,
-        datalabels: {
-          display: false
-        }
+        datalabels: { display: false }
       },
       {
         label: 'Meta restante',
@@ -864,9 +483,7 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
         backgroundColor: '#ffb44d',
         stack: 'goal',
         borderRadius: 6,
-        datalabels: {
-          display: false
-        }
+        datalabels: { display: false }
       },
       {
         label: 'Indicador',
@@ -882,15 +499,10 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
           anchor: 'end',
           align: 'end',
           offset: 2,
-          font: {
-            size: isMobile ? 10 : 12,
-            weight: 600
-          },
+          font: { size: isMobile ? 10 : 12, weight: 600 },
           formatter: (_value, context) => {
             const amount = data.realized[context.dataIndex] ?? 0;
-            if (amount <= 0) {
-              return '';
-            }
+            if (amount <= 0) { return ''; }
             return this.formatChartValue(amount);
           }
         }
@@ -906,32 +518,17 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
       scales: {
         x: {
           stacked: true,
-          ticks: {
-            autoSkip: false,
-            maxRotation: isMobile ? 45 : 0,
-            minRotation: isMobile ? 45 : 0,
-            font: {
-              size: isMobile ? 10 : 12
-            }
-          }
+          ticks: { autoSkip: false, maxRotation: isMobile ? 45 : 0, minRotation: isMobile ? 45 : 0, font: { size: isMobile ? 10 : 12 } }
         },
         y: {
           stacked: true,
           beginAtZero: true,
-          ticks: {
-            font: {
-              size: isMobile ? 10 : 12
-            }
-          }
+          ticks: { font: { size: isMobile ? 10 : 12 } }
         }
       },
       plugins: {
-        legend: {
-          display: false
-        },
-        datalabels: {
-          clamp: true
-        }
+        legend: { display: false },
+        datalabels: { clamp: true }
       }
     };
   }
@@ -942,7 +539,7 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
 
   private formatChartValue(value: number): string {
     if (!this.isMobileView) {
-      return this.financeService.formatCurrency(value);
+      return this.formattingService.formatCurrency(value);
     }
     if (value >= 1000) {
       const compact = Number((value / 1000).toFixed(1));
@@ -951,6 +548,5 @@ export class HomePage implements OnInit, AfterViewInit, OnDestroy {
     }
     return `R$ ${Math.round(value)}`;
   }
-
 }
 

@@ -1,6 +1,8 @@
 import { Injectable, inject, EnvironmentInjector, runInInjectionContext } from '@angular/core';
 import { Firestore, collection, doc, updateDoc, deleteDoc, getDocs, query, where } from '@angular/fire/firestore';
 import { PaymentStatus } from '../models/service-order.model';
+import { firstValueFrom } from 'rxjs';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -8,10 +10,20 @@ import { PaymentStatus } from '../models/service-order.model';
 export class PaymentService {
   private firestore = inject(Firestore);
   private environmentInjector = inject(EnvironmentInjector);
+  private authService = inject(AuthService);
+
+  private async getTenantId(): Promise<string> {
+    const user = await firstValueFrom(this.authService.currentUser$);
+    if (!user?.tenantId) {
+      throw new Error('Tenant ID é obrigatório.');
+    }
+    return user.tenantId;
+  }
 
   async updateTransactionPaymentStatus(transactionId: string, status: PaymentStatus) {
+    const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'lancamentos', transactionId)
+      doc(this.firestore, 'empresas', tenantId, 'lancamentos', transactionId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       updateDoc(docRef, { paymentStatus: status })
@@ -19,8 +31,9 @@ export class PaymentService {
   }
 
   async updateTransactionPaymentStatusByServiceOrderId(serviceOrderId: string, status: PaymentStatus) {
+    const tenantId = await this.getTenantId();
     const collectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, 'lancamentos')
+      collection(this.firestore, 'empresas', tenantId, 'lancamentos')
     );
     const q = runInInjectionContext(this.environmentInjector, () =>
       query(collectionRef, where('serviceOrderId', '==', serviceOrderId))
@@ -31,7 +44,7 @@ export class PaymentService {
     }
     for (const docSnap of snapshot.docs) {
       const docRef = runInInjectionContext(this.environmentInjector, () =>
-        doc(this.firestore, 'lancamentos', docSnap.id)
+        doc(this.firestore, 'empresas', tenantId, 'lancamentos', docSnap.id)
       );
       await runInInjectionContext(this.environmentInjector, () =>
         updateDoc(docRef, { paymentStatus: status })
@@ -41,8 +54,9 @@ export class PaymentService {
   }
 
   async deleteTransaction(transactionId: string) {
+    const tenantId = await this.getTenantId();
     const docRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, 'lancamentos', transactionId)
+      doc(this.firestore, 'empresas', tenantId, 'lancamentos', transactionId)
     );
     await runInInjectionContext(this.environmentInjector, () =>
       deleteDoc(docRef)

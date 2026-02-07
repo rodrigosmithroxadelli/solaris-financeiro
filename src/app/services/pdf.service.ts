@@ -1,14 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { FinanceService } from './finance.service';
-import { Transaction } from '../models/transaction.model';
+import { FormattingService } from './formatting.service';
+import { Lancamento } from '../models/interfaces';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PdfService {
-  private financeService = inject(FinanceService);
+  private formattingService = inject(FormattingService);
 
 
   generatePdf(data: any[], title: string, headers: { title: string, key: string }[], body: any[]) {
@@ -24,7 +24,7 @@ export class PdfService {
           return new Date(item[header.key]).toLocaleDateString('pt-BR');
         }
         if (header.key === 'amount') {
-          return this.financeService.formatCurrency(item[header.key]);
+          return this.formattingService.formatCurrency(item[header.key]);
         }
         return item[header.key];
       });
@@ -39,7 +39,7 @@ export class PdfService {
     doc.save(`${title}.pdf`);
   }
 
-  generateReceiptPdf(transaction: Transaction) {
+  generateReceiptPdf(lancamento: Lancamento) {
     const doc = new jsPDF();
     const logo = '/assets/icon/logotipo-piloto.png';
 
@@ -56,31 +56,31 @@ export class PdfService {
 
     // Informações do Cliente
     doc.setFontSize(12);
-    doc.text(`Cliente: ${transaction.clientName}`, 14, 70);
-    if (transaction.clientPhone) {
-      doc.text(`Telefone: ${transaction.clientPhone}`, 14, 77);
+    doc.text(`Cliente: ${lancamento.cliente_nome}`, 14, 70);
+    if (lancamento.cliente_telefone) {
+      doc.text(`Telefone: ${lancamento.cliente_telefone}`, 14, 77);
     }
-    if (transaction.clientAddress) {
-      doc.text(`Endereço: ${transaction.clientAddress}`, 14, 84);
+    if (lancamento.cliente_endereco) {
+      doc.text(`Endereço: ${lancamento.cliente_endereco}`, 14, 84);
     }
 
     // Detalhes do Serviço
     doc.setFontSize(12);
     doc.text('Descrição do Serviço:', 14, 100);
     doc.setFontSize(10);
-    doc.text(transaction.title, 14, 107);
+    doc.text(lancamento.descricao ?? 'Serviço Prestado', 14, 107);
     
     // Data e Valor
     doc.setFontSize(12);
-    doc.text(`Data: ${this.financeService.formatDate(transaction.date)}`, 14, 120);
+    doc.text(`Data: ${this.formattingService.formatDate(lancamento.data_pagamento ?? lancamento.data_vencimento)}`, 14, 120);
     doc.setFontSize(14);
-    doc.text(`Valor Total: ${this.financeService.formatCurrency(transaction.amount)}`, 14, 130);
+    doc.text(`Valor Total: ${this.formattingService.formatCurrency(lancamento.valor)}`, 14, 130);
 
     // Assinatura
     doc.line(60, 160, 150, 160);
     doc.setFontSize(10);
     doc.text('Assinatura do Cliente', 105, 165, { align: 'center' });
 
-    doc.save(`Recibo-${transaction.clientName}-${transaction.date}.pdf`);
+    doc.save(`Recibo-${lancamento.cliente_nome}-${new Date().toISOString().split('T')[0]}.pdf`);
   }
 }

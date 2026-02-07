@@ -3,12 +3,11 @@ import { CommonModule } from '@angular/common';
 import { IonIcon, IonRouterOutlet, IonFab, IonFabButton, IonHeader, IonToolbar } from '@ionic/angular/standalone';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, chatbubbleEllipsesOutline } from 'ionicons/icons';
+import { statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, pricetagOutline } from 'ionicons/icons';
 import { AuthService } from '../services/auth.service';
 import { User } from '../models/user.model';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CaixaPage } from '../Caixa/caixa.page';
 
 @Component({
   selector: 'app-tabs',
@@ -33,21 +32,7 @@ export class TabsPage implements OnInit {
   public isAdmin = false;
 
   constructor() {
-    addIcons({ statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, chatbubbleEllipsesOutline });
-  }
-
-  onFabClick() {
-    // A more robust way: get the component instance from the outlet
-    if (this.routerOutlet && this.routerOutlet.component) {
-      // Check if the active component is CaixaPage
-      const component = this.routerOutlet.component;
-      if (component instanceof CaixaPage) {
-        component.openAddTransactionModal();
-      } else if (typeof (component as any).openAddTransactionModal === 'function') {
-        // Fallback for other potential pages or if instanceof fails with proxies
-        (component as any).openAddTransactionModal();
-      }
-    }
+    addIcons({ statsChartOutline, walletOutline, cubeOutline, documentTextOutline, peopleOutline, barChartOutline, settings, add, chevronBackOutline, searchOutline, notificationsOutline, menuOutline, homeOutline, constructOutline, pricetagOutline });
   }
 
   goBack() {
@@ -109,10 +94,12 @@ export class TabsPage implements OnInit {
         // Check if this page matches the active tab
         const isMatch = 
           (activeTabName === 'inicio' && tagName === 'app-home') ||
-          (activeTabName === 'caixa' && tagName === 'app-caixa') ||
+          (activeTabName === 'vendas' && tagName === 'app-vendas') ||
+          (activeTabName === 'financeiro' && tagName === 'app-financeiro') ||
           (activeTabName === 'catalogo' && tagName === 'app-service-catalog') ||
           (activeTabName === 'os' && tagName === 'app-service-order') ||
           (activeTabName === 'clients' && tagName === 'app-clients') ||
+          (activeTabName === 'financeiro' && tagName === 'app-financeiro') ||
           (activeTabName === 'relatorios' && tagName === 'app-relatorios') ||
           (activeTabName === 'admin' && tagName === 'app-admin');
         

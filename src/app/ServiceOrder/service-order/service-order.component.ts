@@ -18,16 +18,13 @@ import {
 } from '@ionic/angular/standalone';
 import { OrderService } from '../../services/order.service';
 import { PaymentService } from '../../services/payment.service';
-import { FinanceService } from '../../services/finance.service';
 import { AuthService } from '../../services/auth.service'; // Import AuthService
 import { User } from '../../models/user.model'; // Import User
 import { ServiceOrder, ServiceStatus } from '../../models/service-order.model';
 import { addIcons } from 'ionicons';
 import { trash, cashOutline, close, checkmark } from 'ionicons/icons';
 import { Subscription } from 'rxjs';
-import { take } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
- 
 
 @Component({
   selector: 'app-service-order',
@@ -53,7 +50,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 export class ServiceOrderComponent implements OnInit, OnDestroy {
   private orderService = inject(OrderService);
   private paymentService = inject(PaymentService);
-  private financeService = inject(FinanceService);
   private authService = inject(AuthService);
   private toastController = inject(ToastController);
   private alertController = inject(AlertController);
@@ -91,28 +87,15 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
   }
 
   loadDataForUser(user: User) {
-    if (!user.tenantId) return;
+    if (!user.tenantId || this.hasLoadedOrders) return;
 
-    if (!this.hasLoadedOrders) {
-      this.hasLoadedOrders = true;
-      const ordersSub = this.orderService.getOrdersOnce(true).subscribe(orders => {
-        this.ordersSnapshot = orders;
-        this.applyOrderFilters();
-      });
-      this.subscriptions.add(ordersSub);
-    }
-    if (this.currentUser?.tenantId) {
-      this.financeService.transactions$
-        .pipe(takeUntilDestroyed(this.destroyRef), take(1))
-        .subscribe(async transactions => {
-          const changed = await this.orderService.syncOrdersFromTransactions(transactions);
-          if (changed) {
-            this.showToast('OS atualizadas com lançamentos pendentes', 'success');
-          }
-        });
-    }
+    this.hasLoadedOrders = true;
+    const ordersSub = this.orderService.getOrdersOnce(true).subscribe(orders => {
+      this.ordersSnapshot = orders;
+      this.applyOrderFilters();
+    });
+    this.subscriptions.add(ordersSub);
   }
-
 
   onPendingToggle() {
     this.applyOrderFilters();
@@ -217,14 +200,14 @@ export class ServiceOrderComponent implements OnInit, OnDestroy {
   }
 
   getServiceStatusLabel(order: ServiceOrder): string {
-    const status = order.serviceStatus || order.status || 'AGUARDANDO_ACAO';
+    const status = order.serviceStatus || order.status || 'OPEN';
     switch (status) {
-      case 'AGUARDANDO_ACAO':
-        return 'AGUARDANDO AÇÃO';
       case 'CONCLUIDA':
         return 'CONCLUÍDA';
       case 'CANCELADA':
         return 'CANCELADA';
+      case 'OPEN':
+        return 'ABERTA';
       default:
         return status.replace('_', ' ');
     }

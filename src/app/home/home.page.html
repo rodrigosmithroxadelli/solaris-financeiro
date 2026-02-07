@@ -2,527 +2,186 @@
 <ion-content class="dashboard-content dashboard-theme">
 
   <section class="greeting-card">
-
     <div class="greeting-avatar">
-
       <ion-icon name="person-circle-outline"></ion-icon>
-
     </div>
-
     <div class="greeting-text">
-
       <h2>Olá {{ currentUserName }}, {{ greetingLabel }}!</h2>
-
       <p>Hoje é dia {{ todayLabel }}</p>
-
     </div>
-
     <button class="circle-button" type="button">
-
       <ion-icon name="eye-outline"></ion-icon>
-
     </button>
-
   </section>
-
-
-
-  <section class="quick-actions">
-
-    <button class="action-pill" type="button" (click)="goToNovaVenda()">
-
-      <ion-icon name="cash-outline"></ion-icon>
-
-      <span>Nova Venda</span>
-
-    </button>
-
-    <button class="action-pill" type="button">
-
-      <ion-icon name="calendar-outline"></ion-icon>
-
-      <span>Novo Agendamento</span>
-
-    </button>
-
-    <button class="action-pill" type="button">
-
-      <ion-icon name="document-text-outline"></ion-icon>
-
-      <span>Novo Orçamento</span>
-
-    </button>
-
-    <button class="action-pill" type="button">
-
-      <ion-icon name="checkbox-outline"></ion-icon>
-
-      <span>Preencher Vaga</span>
-
-    </button>
-
-  </section>
-
-
 
   <section class="dashboard-card">
-
     <div class="card-header">
       <div class="calendar-actions">
         <button class="icon-pill" type="button" (click)="goToPreviousMonth()">
           <ion-icon name="chevron-back-outline"></ion-icon>
         </button>
-        <h3>{{ viewMode === 'DIARIA' ? selectedDayLabel : selectedMonthLabel }}</h3>
+        <h3>{{ selectedMonthLabel }}</h3>
         <button class="icon-pill" type="button" (click)="goToNextMonth()">
           <ion-icon name="chevron-forward-outline"></ion-icon>
         </button>
-        <select class="view-mode-select" [ngModel]="viewMode" (ngModelChange)="onViewModeChange($event)">
-          <option value="MENSAL">Visão Mensal</option>
-          <option value="DIARIA">Visão Diária</option>
-        </select>
       </div>
     </div>
-
-    <div class="calendar-grid">
-
-      <div class="calendar-row">
-
-        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-
-      </div>
-
-      <div class="calendar-days">
-
-        <span *ngFor="let day of [1,2,3]" class="calendar-cell inactive">{{ day }}</span>
-
-        <span *ngFor="let day of [4,5,6,7,8,9,10]" class="calendar-cell">{{ day }}</span>
-
-        <span *ngFor="let day of [11,12,13,14,15,16,17]" class="calendar-cell">{{ day }}</span>
-
-        <span *ngFor="let day of [18,19,20,21,22,23,24]" class="calendar-cell">{{ day }}</span>
-
-        <span *ngFor="let day of [25,26,27,28,29,30,31]" class="calendar-cell" [class.today]="day === todayDate">{{ day }}</span>
-
-      </div>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-      <ion-icon name="bar-chart-outline"></ion-icon>
-      <div>
-        <h3>Resumo financeiro</h3>
-      </div>
-      <div class="card-title-end">
-        <strong [class.positive-text]="balance.total >= 0" [class.negative-text]="balance.total < 0">
-          {{ financeService.formatCurrency(balance.total) }} de saldo
-        </strong>
-      </div>
-    </div>
-
     <div class="finance-grid finance-grid--two">
       <div class="finance-box positive">
         <h4>Entradas hoje</h4>
         <p>Valor total de todas as entradas no financeiro</p>
-        <strong>{{ financeService.formatCurrency(todaySummary.entradas) }}</strong>
+        <strong>{{ formattingService.formatCurrency(todaySummary.entradas) }}</strong>
       </div>
       <div class="finance-box negative">
         <h4>Saídas hoje</h4>
         <p>Valor total de todos os gastos do financeiro</p>
-        <strong>{{ financeService.formatCurrency(todaySummary.saidas) }}</strong>
+        <strong>{{ formattingService.formatCurrency(todaySummary.saidas) }}</strong>
       </div>
       <div class="finance-box warning">
         <h4>Pendente para pagamento</h4>
         <p>Valor total das entradas pendentes</p>
-        <strong>{{ financeService.formatCurrency(pendingPaymentsTotal) }}</strong>
-      </div>
-      <div class="finance-box negative">
-        <h4>Saídas no mês</h4>
-        <p>Valor total das saídas deste mês</p>
-        <strong>{{ financeService.formatCurrency(monthlyExpensesTotal) }}</strong>
-      </div>
-      <div class="finance-box neutral" *ngIf="showCreditCardCard">
-        <div class="finance-box-row">
-          <div>
-            <h4>Faturas no cartão</h4>
-            <p>Valor total das faturas dos cartões de crédito</p>
-          </div>
-          <strong>{{ financeService.formatCurrency(faturasCartaoPeriodo) }}</strong>
-        </div>
+        <strong>{{ formattingService.formatCurrency(pendingPaymentsTotal) }}</strong>
       </div>
       <div class="finance-box neutral">
         <h4>Saldo total em caixa</h4>
         <p>Saldo total de entradas e saídas</p>
-        <strong>{{ financeService.formatCurrency(totalCashBalance) }}</strong>
+        <strong>{{ formattingService.formatCurrency(totalCashBalance) }}</strong>
       </div>
     </div>
-
   </section>
 
-
-
   <section class="dashboard-card">
-
     <div class="card-title">
-
       <ion-icon name="cash-outline"></ion-icon>
-
       <div>
-
         <h3>Resumo das vendas</h3>
-        <p>{{ financeService.formatCurrency(monthSummary.entradas) }} em vendas pagas em {{ selectedMonthLabel }}</p>
-
+        <p>{{ formattingService.formatCurrency(monthSummary.entradas) }} em vendas pagas em {{ selectedMonthLabel }}</p>
       </div>
-
     </div>
-
     <div class="sales-breakdown">
-
       <div class="breakdown-item">
-
         <span class="dot orange"></span>
-
         <span>Débito</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.debito) }}</strong>
-
+        <strong>{{ formattingService.formatCurrency(salesBreakdown.debito) }}</strong>
       </div>
-
       <div class="breakdown-item">
-
         <span class="dot green"></span>
-
         <span>Crédito</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.credito) }}</strong>
-
+        <strong>{{ formattingService.formatCurrency(salesBreakdown.credito) }}</strong>
       </div>
-
       <div class="breakdown-item">
-
         <span class="dot blue"></span>
-
         <span>Pix</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.pix) }}</strong>
-
+        <strong>{{ formattingService.formatCurrency(salesBreakdown.pix) }}</strong>
       </div>
-
       <div class="breakdown-item">
-
         <span class="dot red"></span>
-
         <span>Dinheiro</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.dinheiro) }}</strong>
-
+        <strong>{{ formattingService.formatCurrency(salesBreakdown.dinheiro) }}</strong>
       </div>
-
-      <div class="breakdown-item">
-
-        <span class="dot gray"></span>
-
-        <span>Boleto</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.boleto) }}</strong>
-
-      </div>
-
-      <div class="breakdown-item">
-
-        <span class="dot dark"></span>
-
-        <span>Transferências</span>
-
-        <strong>{{ financeService.formatCurrency(salesBreakdown.transferencias) }}</strong>
-
-      </div>
-
     </div>
-
     <div class="sales-chart">
       <canvas #salesChart></canvas>
     </div>
-
   </section>
 
-
-
-  <section class="dashboard-card">
-
+  <section class="dashboard-card" *ngIf="indicadoresEstrategicos as indicadores">
     <div class="card-title">
-
-      <ion-icon name="document-text-outline"></ion-icon>
-
+      <ion-icon name="stats-chart-outline"></ion-icon>
       <div>
-
-        <h3>Orçamentos esse mês</h3>
-
+        <h3>Indicadores estratégicos</h3>
+        <p>Comparativo do mês atual vs anterior</p>
       </div>
-
     </div>
-
-    <div class="split-metrics">
-
-      <div>
-
-        <h2>{{ budgetsPending }}</h2>
-
-        <p>orçamentos pendentes</p>
-
+    <div class="finance-grid finance-grid--two">
+      <div class="finance-box positive">
+        <h4>Ticket médio</h4>
+        <p>Atual {{ formattingService.formatCurrency(indicadores.ticketMedio.atual) }}</p>
+        <strong>{{ formattingService.formatCurrency(indicadores.ticketMedio.anterior) }}</strong>
+        <span class="muted">Mês anterior</span>
       </div>
-
-      <div>
-
-        <h2>{{ budgetsApproved }}</h2>
-
-        <p>orçamentos aprovados</p>
-
+      <div class="finance-box neutral">
+        <h4>Conversão de OS</h4>
+        <p>Atual {{ (indicadores.conversaoOs.atual * 100) | number:'1.0-1' }}%</p>
+        <strong>{{ (indicadores.conversaoOs.anterior * 100) | number:'1.0-1' }}%</strong>
+        <span class="muted">Mês anterior</span>
       </div>
-
     </div>
-
   </section>
 
-
-
-  <section class="dashboard-card">
-
+  <section class="dashboard-card" *ngIf="indicadoresEstrategicos as indicadores">
     <div class="card-title">
-
-      <ion-icon name="grid-outline"></ion-icon>
-
-      <div>
-
-        <h3>Vagas no espaço hoje</h3>
-
-      </div>
-
-    </div>
-
-    <div class="split-metrics">
-
-      <div>
-
-        <h2>{{ occupiedSlots }} / {{ totalSlots }}</h2>
-
-        <p>vagas ocupadas</p>
-
-      </div>
-
-      <div>
-
-        <h2>{{ completedSlots }}</h2>
-
-        <p>vagas concluídas</p>
-
-      </div>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-
-      <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
-
-      <div>
-
-        <h3>Pós-vendas para hoje</h3>
-
-      </div>
-
-    </div>
-
-    <div class="split-metrics">
-
-      <div>
-
-        <h2>{{ postSalesPending }}</h2>
-
-        <p>contatos pendentes</p>
-
-      </div>
-
-      <div>
-
-        <h2>{{ postSalesCompleted }}</h2>
-
-        <p>pós-vendas realizadas</p>
-
-      </div>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-
-      <ion-icon name="briefcase-outline"></ion-icon>
-
-      <div>
-
-        <h3>Funcionários cadastrados</h3>
-
-      </div>
-
-    </div>
-
-    <div class="single-metric">
-
-      <h2>{{ employeesCount }}</h2>
-
-      <p>funcionários cadastrados nessa empresa</p>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-
-      <ion-icon name="business-outline"></ion-icon>
-
-      <div>
-
-        <h3>Sua empresa</h3>
-
-        <p>No Piloto desde {{ companySinceLabel }}, menos de 1 ano</p>
-
-      </div>
-
-    </div>
-
-    <div class="company-block">
-
-      <div class="company-avatar">
-
-        <ion-icon name="person-circle-outline"></ion-icon>
-
-      </div>
-
-      <div>
-
-        <h4>{{ companyName }}</h4>
-
-      </div>
-
-    </div>
-
-    <div class="divider"></div>
-
-    <div class="company-block">
-
-      <div class="company-avatar gold">
-
-        <ion-icon name="ribbon-outline"></ion-icon>
-
-      </div>
-
-      <div>
-
-        <h4>Tipo de Assinatura</h4>
-
-        <p>{{ subscriptionLabel }}</p>
-
-      </div>
-
-    </div>
-
-  </section>
-
-
-
-  <section class="dashboard-card">
-
-    <div class="card-title">
-
       <ion-icon name="people-outline"></ion-icon>
-
       <div>
-
-        <h3>Top 5 clientes</h3>
-
-        <p>{{ clientsCount }} cliente cadastrado</p>
-
+        <h3>Receita por cliente (Top 5)</h3>
+        <p>Ranking do mês atual</p>
       </div>
-
     </div>
-
-    <div class="top-client" *ngFor="let client of topClients">
-
-      <div class="client-avatar">
-
-        <ion-icon name="person-circle-outline"></ion-icon>
-
+    <div *ngIf="indicadores.receitaPorCliente.atual.length > 0; else emptyClientes">
+      <div class="top-client" *ngFor="let item of indicadores.receitaPorCliente.atual">
+        <div class="client-avatar">
+          <ion-icon name="person-circle-outline"></ion-icon>
+        </div>
+        <div>
+          <h4>{{ item.label }}</h4>
+          <p>Receita confirmada</p>
+        </div>
+        <div class="client-amount">
+          {{ formattingService.formatCurrency(item.amount) }}
+        </div>
       </div>
-
-      <div>
-
-        <h4>{{ client.name }}</h4>
-
-        <p>0 serviços feitos</p>
-
-      </div>
-
-      <div class="client-amount">
-
-        {{ financeService.formatCurrency(0) }}
-
-      </div>
-
     </div>
-
+    <ng-template #emptyClientes>
+      <div class="empty-state">
+        <p>Nenhuma receita por cliente no período.</p>
+      </div>
+    </ng-template>
   </section>
 
-
+  <section class="dashboard-card" *ngIf="indicadoresEstrategicos as indicadores">
+    <div class="card-title">
+      <ion-icon name="cube-outline"></ion-icon>
+      <div>
+        <h3>Receita por tipo de serviço</h3>
+        <p>Ranking do mês atual</p>
+      </div>
+    </div>
+    <div *ngIf="indicadores.receitaPorServico.atual.length > 0; else emptyServicos">
+      <div class="top-client" *ngFor="let item of indicadores.receitaPorServico.atual">
+        <div class="client-avatar">
+          <ion-icon name="cube-outline"></ion-icon>
+        </div>
+        <div>
+          <h4>{{ item.label }}</h4>
+          <p>Receita confirmada</p>
+        </div>
+        <div class="client-amount">
+          {{ formattingService.formatCurrency(item.amount) }}
+        </div>
+      </div>
+    </div>
+    <ng-template #emptyServicos>
+      <div class="empty-state">
+        <p>Nenhuma receita por serviço no período.</p>
+      </div>
+    </ng-template>
+  </section>
 
   <section class="footer-card">
-
     <img src="assets/icon/logotipo-piloto-2.png" alt="Piloto" />
-
     <div class="social-icons">
-
       <ion-icon name="logo-instagram"></ion-icon>
-
       <ion-icon name="logo-youtube"></ion-icon>
-
       <ion-icon name="logo-facebook"></ion-icon>
-
       <ion-icon name="logo-whatsapp"></ion-icon>
-
     </div>
-
     <p>© Copyright 2026 Plataforma Piloto</p>
-
   </section>
 
-
-
   <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-
     <ion-fab-button color="danger">
-
       <ion-icon name="help-circle-outline"></ion-icon>
-
     </ion-fab-button>
-
   </ion-fab>
 
 </ion-content>

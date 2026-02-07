@@ -13,6 +13,7 @@ import { provideHttpClient } from '@angular/common/http'; // Add this import
 
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
+import { getFunctions, provideFunctions } from '@angular/fire/functions';
 import { environment } from '@environments/environment'; // Import environment
 
 addIcons({ receiptOutline });
@@ -28,6 +29,7 @@ bootstrapApplication(AppComponent, {
     }),
     provideFirebaseApp(() => initializeApp(environment.firebaseConfig)), // Use environment config
     provideFirestore(() => getFirestore()),
+    provideFunctions(() => getFunctions()),
     provideAnimations(), // Add this provider
     provideHttpClient(), // Add this provider
   ],

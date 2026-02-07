@@ -32,10 +32,10 @@
   <ion-list>
     <ion-item *ngFor="let t of history">
       <ion-label>
-        <h2>{{ t.title }}</h2>
-        <p>{{ t.date | date:'dd/MM/yyyy' }}</p>
+        <h2>{{ t.descricao }}</h2>
+        <p>{{ t.data_vencimento | date:'dd/MM/yyyy' }}</p>
       </ion-label>
-      <ion-note slot="end" color="dark">{{ t.amount | currency:'BRL' }}</ion-note>
+      <ion-note slot="end" color="dark">{{ t.valor | currency:'BRL' }}</ion-note>
       
       <ion-button slot="end" fill="clear" (click)="generateReceipt(t)">
         <ion-icon name="document-text-outline" slot="icon-only"></ion-icon>

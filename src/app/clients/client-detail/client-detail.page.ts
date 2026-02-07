@@ -3,16 +3,17 @@ import { CommonModule } from '@angular/common';
 import { IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, IonContent, IonCard, IonCardContent, IonList, IonItem, IonLabel, IonNote, IonButton, IonIcon } from '@ionic/angular/standalone';
 import { ActivatedRoute } from '@angular/router';
 import { ClientService } from '../../services/client.service';
-import { FinanceService } from '../../services/finance.service'; // Para pegar transações
+import { FinanceiroService } from '../../services/financeiro.service';
+import { FormattingService } from '../../services/formatting.service';
 import { PdfService } from '../../services/pdf.service';
 import { Client } from '../../models/client.model';
-import { Transaction } from '../../models/transaction.model';
+import { Lancamento } from '../../models/interfaces';
 import { addIcons } from 'ionicons';
 import { documentTextOutline } from 'ionicons/icons';
-import { combineLatest, of, shareReplay } from 'rxjs'; // Add combineLatest, of
+import { combineLatest, of, shareReplay } from 'rxjs';
 import { switchMap, filter, map } from 'rxjs/operators';
-import { AuthService } from '../../services/auth.service'; // Import AuthService
-import { User } from '../../models/user.model'; // Import User model
+import { AuthService } from '../../services/auth.service';
+import { User } from '../../models/user.model';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
@@ -24,12 +25,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 })
 export class ClientDetailPage implements OnInit {
   client: Client | null = null;
-  history: Transaction[] = [];
+  history: Lancamento[] = [];
   hasLoadedHistory = false;
   
   private route = inject(ActivatedRoute);
   private clientService = inject(ClientService);
-  private financeService = inject(FinanceService);
+  private financeiroService = inject(FinanceiroService);
+  private formattingService = inject(FormattingService); // Injetado para uso futuro ou no template
   private pdfService = inject(PdfService);
   private authService = inject(AuthService); // Inject AuthService
   private destroyRef = inject(DestroyRef);
@@ -52,7 +54,7 @@ export class ClientDetailPage implements OnInit {
         ]).pipe(
           map(([user, client]: [User | null, Client | {} | null]) => { // client here is already Client | {}
               if (user && user.tenantId && client && 'tenantId' in client && client.tenantId === user.tenantId) {
-                  return client;
+                  return client as Client;
               }
               return null; // Return null if user/client not found or tenantId mismatch
           }),
@@ -68,11 +70,11 @@ export class ClientDetailPage implements OnInit {
         this.client = client;
       });
 
-    combineLatest([client$, this.financeService.transactions$])
+    combineLatest([client$, this.financeiroService.getLancamentos$()])
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(([client, transactions]) => {
+      .subscribe(([client, lancamentos]) => {
         if (client) {
-          this.history = transactions.filter(t => t.clientName === client.name);
+          this.history = lancamentos.filter(l => l.cliente_nome === client.name);
           this.hasLoadedHistory = true;
         } else {
           this.history = [];
@@ -80,9 +82,9 @@ export class ClientDetailPage implements OnInit {
       });
   }
 
-  generateReceipt(transaction: Transaction) {
+  generateReceipt(lancamento: Lancamento) {
     if (this.client) {
-      this.pdfService.generateReceiptPdf(transaction);
+      this.pdfService.generateReceiptPdf(lancamento);
     }
   }
 }

@@ -85,26 +85,26 @@
         <div class="form-row">
           <div class="value-box">
             <span class="value-label">Entradas</span>
-            <span class="value-value success">{{ financeService.formatCurrency(summary.totalEntradas) }}</span>
+            <span class="value-value success">{{ formattingService.formatCurrency(summary.totalEntradas) }}</span>
           </div>
           <div class="value-box">
             <span class="value-label">Saídas</span>
-            <span class="value-value danger">{{ financeService.formatCurrency(summary.totalSaidas) }}</span>
+            <span class="value-value danger">{{ formattingService.formatCurrency(summary.totalSaidas) }}</span>
           </div>
         </div>
         <div class="value-box full">
           <span class="value-label">Saldo</span>
           <span class="value-value" [class.success]="summary.saldo >= 0" [class.danger]="summary.saldo < 0">
-            {{ financeService.formatCurrency(summary.saldo) }}
+            {{ formattingService.formatCurrency(summary.saldo) }}
           </span>
         </div>
         <div class="value-box full">
           <span class="value-label">Saldo total em caixa</span>
           <span class="value-value" [class.success]="totalCashBalance >= 0" [class.danger]="totalCashBalance < 0">
-            {{ financeService.formatCurrency(totalCashBalance) }}
+            {{ formattingService.formatCurrency(totalCashBalance) }}
           </span>
         </div>
-        <div class="empty-state" *ngIf="filteredTransactions.length === 0">
+        <div class="empty-state" *ngIf="totalTransacoes === 0">
           <p>Nenhuma movimentação encontrada no período.</p>
         </div>
       </div>
@@ -122,7 +122,7 @@
                 class="chart-bar-fill success"
                 [style.width.%]="getComparisonPercentage(summary.totalEntradas)"
               ></div>
-              <span class="chart-value-inline">{{ financeService.formatCurrency(summary.totalEntradas) }}</span>
+              <span class="chart-value-inline">{{ formattingService.formatCurrency(summary.totalEntradas) }}</span>
             </div>
           </div>
           <div class="chart-row">
@@ -132,7 +132,7 @@
                 class="chart-bar-fill danger"
                 [style.width.%]="getComparisonPercentage(summary.totalSaidas)"
               ></div>
-              <span class="chart-value-inline">{{ financeService.formatCurrency(summary.totalSaidas) }}</span>
+              <span class="chart-value-inline">{{ formattingService.formatCurrency(summary.totalSaidas) }}</span>
             </div>
           </div>
         </div>
@@ -151,7 +151,7 @@
             <div class="chart-bar">
               <div class="chart-fill" [style.width.%]="getPercentage(item.amount)"></div>
             </div>
-            <div class="chart-value">{{ financeService.formatCurrency(item.amount) }}</div>
+            <div class="chart-value">{{ formattingService.formatCurrency(item.amount) }}</div>
           </div>
         </div>
         <ng-template #noCategoryData>
@@ -172,7 +172,7 @@
             <div class="chart-bar">
               <div class="chart-fill" [style.width.%]="getPercentage(item.amount)"></div>
             </div>
-            <div class="chart-value">{{ financeService.formatCurrency(item.amount) }}</div>
+            <div class="chart-value">{{ formattingService.formatCurrency(item.amount) }}</div>
           </div>
         </div>
         <ng-template #noPaymentData>
@@ -192,17 +192,17 @@
         <div class="summary-row">
           <ion-icon name="bar-chart"></ion-icon>
           <span>Total de transações</span>
-          <strong>{{ filteredTransactions.length }}</strong>
+          <strong>{{ totalTransacoes }}</strong>
         </div>
         <div class="summary-row">
           <ion-icon name="pie-chart"></ion-icon>
           <span>Média de entradas</span>
-          <strong>{{ financeService.formatCurrency(summary ? getAverage(summary.totalEntradas, 'entrada') : 0) }}</strong>
+          <strong>{{ formattingService.formatCurrency(summary ? getAverage(summary.totalEntradas, 'entrada') : 0) }}</strong>
         </div>
         <div class="summary-row">
           <ion-icon name="pie-chart"></ion-icon>
           <span>Média de saídas</span>
-          <strong>{{ financeService.formatCurrency(summary ? getAverage(summary.totalSaidas, 'saida') : 0) }}</strong>
+          <strong>{{ formattingService.formatCurrency(summary ? getAverage(summary.totalSaidas, 'saida') : 0) }}</strong>
         </div>
       </div>
       <ng-template #noStats>

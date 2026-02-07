@@ -9,7 +9,7 @@ import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
   providedIn: 'root'
 })
 export class OrderManagerService {
-  private readonly TENANT_COLLECTION = 'tenants';
+  private readonly TENANT_COLLECTION = 'empresas';
   private readonly ORDERS_COLLECTION = 'serviceOrders';
 
   private firestore = inject(Firestore);

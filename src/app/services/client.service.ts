@@ -77,7 +77,7 @@ export class ClientService {
     }
 
     const clientsCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CLIENTS_COLLECTION)
+      collection(this.firestore, 'empresas', tenantId, this.CLIENTS_COLLECTION)
     );
     let clientId = client.id;
 
@@ -145,7 +145,7 @@ export class ClientService {
       return;
     }
     const clientsCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CLIENTS_COLLECTION)
+      collection(this.firestore, 'empresas', currentUser.tenantId, this.CLIENTS_COLLECTION)
     );
     const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
       where('tenantId', '==', currentUser.tenantId),
@@ -168,7 +168,7 @@ export class ClientService {
 
   private async getClientByIdOnce(tenantId: string, id: string): Promise<Client> {
     const clientDocRef = runInInjectionContext(this.environmentInjector, () =>
-      doc(this.firestore, this.CLIENTS_COLLECTION, id)
+      doc(this.firestore, 'empresas', tenantId, this.CLIENTS_COLLECTION, id)
     );
     const clientDocSnap = await runInInjectionContext(this.environmentInjector, () =>
       getDoc(clientDocRef)
@@ -190,7 +190,7 @@ export class ClientService {
       return [];
     }
     const clientsCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.CLIENTS_COLLECTION)
+      collection(this.firestore, 'empresas', tenantId, this.CLIENTS_COLLECTION)
     );
     const constraints: Array<ReturnType<typeof where> | ReturnType<typeof orderBy> | ReturnType<typeof limit> | ReturnType<typeof startAfter>> = [
       where('tenantId', '==', tenantId),

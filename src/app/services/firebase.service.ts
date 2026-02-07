@@ -9,29 +9,12 @@ import { ServiceOrder, Payment } from '../models/service-order.model'; // Assumi
 import { CatalogItem } from '../models/catalog.model'; // Import CatalogItem
 import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
-/**
- * Represents a simplified transaction record for cash flow.
- */
-export interface TransactionRecord {
-  id?: string; // Optional Firestore document ID
-  tenantId: string;
-  serviceOrderId: string; // Link to the ServiceOrder
-  type: 'entrada' | 'saida'; // In this context, payments are 'entrada'
-  method: Payment['method'];
-  grossValue: number;
-  netValue: number;
-  date: Timestamp; // Date of transaction (e.g., payment date or order finished date)
-  description: string; // e.g., "Pagamento OS #1001 - PIX"
-  categoryId?: string; // Optional: could link to a finance category
-}
-
 @Injectable({
   providedIn: 'root'
 })
 export class FirebaseService {
-  private readonly TENANTS_COLLECTION = 'tenants';
+  private readonly TENANTS_COLLECTION = 'empresas';
   private readonly SERVICE_ORDERS_COLLECTION = 'serviceOrders';
-  private readonly TRANSACTIONS_COLLECTION = 'transactions'; // For cash flow records
   private readonly CATALOG_COLLECTION = 'catalogItems'; // For service/product catalog
   private readonly PAGE_SIZE = 20;
 
@@ -88,7 +71,6 @@ export class FirebaseService {
   /**
    * Saves a ServiceOrder to Firestore.
    * If the order has an ID, it updates the existing document. Otherwise, it creates a new one.
-   * If the order status is 'PAID', it also creates transaction records for cash flow.
    * @param order The ServiceOrder object to save.
    * @returns The ID of the saved or updated order.
    */
@@ -125,55 +107,10 @@ export class FirebaseService {
         console.log('FirebaseService: New order created successfully with ID:', orderId);
       }
 
-      // Rule: If status is 'PAID', create transaction records for cash flow
-      if (order.status === 'PAID' && orderId) {
-        await this.createTransactionRecords(orderToSave, orderId);
-      }
-
       return orderId;
     } catch (error) {
       console.error('FirebaseService: Error saving order:', error);
       throw error;
-    }
-  }
-
-  /**
-   * Creates transaction records in the 'transactions' collection for each payment in a PAID ServiceOrder.
-   * @param serviceOrder The PAID ServiceOrder.
-   * @param serviceOrderId The ID of the saved ServiceOrder.
-   */
-  private async createTransactionRecords(serviceOrder: ServiceOrder, serviceOrderId: string): Promise<void> {
-    if (!serviceOrder.financial || !serviceOrder.financial.payments || serviceOrder.financial.payments.length === 0) {
-      console.warn(`FirebaseService: No payments to record for ServiceOrder ID: ${serviceOrderId}`);
-      return;
-    }
-
-    const transactionsCollectionRef = runInInjectionContext(this.environmentInjector, () =>
-      collection(this.firestore, this.TENANTS_COLLECTION, serviceOrder.tenantId, this.TRANSACTIONS_COLLECTION)
-    );
-
-    for (const payment of serviceOrder.financial.payments) {
-      const transactionRecord: TransactionRecord = {
-        tenantId: serviceOrder.tenantId,
-        serviceOrderId: serviceOrderId,
-        type: 'entrada', // Payments are considered 'entrada' (incoming) for cash flow
-        method: payment.method,
-        grossValue: payment.grossValue,
-        netValue: payment.netValue,
-        date: payment.dueDate instanceof Timestamp ? payment.dueDate : Timestamp.fromDate(payment.dueDate as Date), // Ensure Timestamp
-        description: `Pagamento OS #${serviceOrder.number} - ${payment.method} (${serviceOrder.clientName})`
-        // categoryId could be added here if a system-wide category for sales/services exists
-      };
-
-      try {
-        await runInInjectionContext(this.environmentInjector, () =>
-          addDoc(transactionsCollectionRef, transactionRecord)
-        );
-        console.log(`FirebaseService: Transaction record created for payment in OS ${serviceOrderId}`);
-      } catch (error) {
-        console.error(`FirebaseService: Error creating transaction record for payment in OS ${serviceOrderId}:`, error);
-        throw error;
-      }
     }
   }
 

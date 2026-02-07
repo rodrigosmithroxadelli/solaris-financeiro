@@ -53,11 +53,16 @@
 
       </button>
 
-      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'caixa'" (click)="selectTab('caixa')">
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'vendas'" (click)="selectTab('vendas')">
+        <ion-icon name="pricetag-outline"></ion-icon>
+        <span>Vendas</span>
+      </button>
 
-        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+      <button class="quick-nav-item" type="button" [class.active]="activeTab === 'financeiro'" (click)="selectTab('financeiro')">
 
-        <span>Caixa</span>
+        <ion-icon name="stats-chart-outline"></ion-icon>
+
+        <span>Financeiro</span>
 
       </button>
 
@@ -105,13 +110,5 @@
 
 
 
-<ion-fab *ngIf="activeTab === 'caixa'" vertical="bottom" horizontal="end" slot="fixed">
 
-  <ion-fab-button (click)="onFabClick()">
-
-    <ion-icon name="add"></ion-icon>
-
-  </ion-fab-button>
-
-</ion-fab>
 

@@ -25,21 +25,75 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(getUid())).data.role == 'admin';
     }
 
-    // --- Collection-specific rules ---
-
-    // Users collection: A user can only read and write their own document
-    // Admins can read/write any user document within their tenant (for user management)
+    // --- Regras por coleção ---
     match /users/{userId} {
       allow read: if isAuthenticated() && (getUid() == userId || (isAdmin() && resource.data.tenantId == getTenantId()));
       allow create: if isAuthenticated() && getUid() == userId; // A user can create their own profile upon first login/registration
       allow update, delete: if isAuthenticated() && (getUid() == userId || (isAdmin() && resource.data.tenantId == getTenantId()));
     }
 
-    // This is the correct way to handle multi-tenant subcollections.
-    // It allows a user to perform actions within their own tenant's subcollections.
-    match /tenants/{tenantId}/{collection}/{document=**} {
-      // Allow read and write access if the user belongs to the tenant.
-      allow read, write: if isAuthenticated() && getTenantId() == tenantId;
+    match /empresas/{empresaId} {
+      allow read, write: if false;
+      
+      match /financeiro_mensal/{monthId} {
+        allow read: if isAuthenticated() && getTenantId() == empresaId;
+        allow write: if false; // somente backend (Admin SDK)
+      }
+      
+      match /auditEvents/{eventId} {
+        allow read: if isAuthenticated() && getTenantId() == empresaId && isAdmin();
+        allow write: if false; // somente backend (Admin SDK)
+      }
+      
+      match /_aggregate_events/{docId} {
+        allow read, write: if false; // somente backend (Admin SDK)
+      }
+      
+      match /lancamentosFinanceiros/{lancamentoId} {
+        allow read: if isAuthenticated() && getTenantId() == empresaId;
+        
+        allow create: if isAuthenticated()
+          && getTenantId() == empresaId
+          && request.resource.data.empresaId == empresaId
+          && request.resource.data.status == 'PENDENTE';
+        
+        allow update: if isAuthenticated()
+          && getTenantId() == empresaId
+          && resource.data.empresaId == empresaId
+          && request.resource.data.empresaId == empresaId
+          && resource.data.status == 'PENDENTE'
+          && request.resource.data.status == 'PENDENTE' // cliente não confirma pagamento
+          && request.resource.data.valor == resource.data.valor
+          && request.resource.data.tipo == resource.data.tipo
+          && request.resource.data.dataCompetencia == resource.data.dataCompetencia;
+        
+        allow delete: if false;
+      }
+      
+      match /os/{osId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
+
+      match /clients/{clientId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
+
+      match /catalogItems/{itemId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
+
+      match /serviceOrders/{orderId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
+
+      match /transactions/{transactionId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
+
+      match /lancamentos/{lancamentoId} {
+        allow read, write: if isAuthenticated() && getTenantId() == empresaId;
+      }
     }
+
   }
 }
